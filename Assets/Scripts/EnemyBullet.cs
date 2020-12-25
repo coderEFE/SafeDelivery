@@ -18,7 +18,7 @@ public class EnemyBullet : MonoBehaviour {
       //Vector2 prediction = (Vector2) playerPos + playerVel;
       Vector3 firingPoint = GameObject.Find("Enemy").GetComponent<EnemyShoot>().firingPoint.position;
       //rb.velocity = new Vector2(Mathf.Clamp(mousePos.x - firingPoint.x, -1, 1) * bulletSpeed, Mathf.Clamp(mousePos.y - firingPoint.y, -1, 1) * bulletSpeed);
-      rb.velocity = (new Vector3(target.x, target.y, 0f) - new Vector3(firingPoint.x, firingPoint.y, 0f)).normalized * bulletSpeed;
+      rb.velocity = (target - (Vector2)firingPoint).normalized * bulletSpeed;
       //Debug.Log((mousePos - firingPoint).normalized);
     }
 

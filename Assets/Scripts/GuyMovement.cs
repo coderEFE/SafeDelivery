@@ -7,9 +7,8 @@ public class GuyMovement : MonoBehaviour
     public Rigidbody2D rb;
     //public Collider2D collider2D;
     bool isFreebody = true;
-    bool spawned = true;
-
-    Vector2 gravity = new Vector2(0f, -0.07f);
+    
+    Vector2 gravity = new Vector2(0f, -40f);
     Transform PlayerPos;
     Vector2 axis;
 
@@ -22,9 +21,7 @@ public class GuyMovement : MonoBehaviour
     // Update is called once per frame
     void Update() {
       axis = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
-      if (isFreebody) {
-        rb.velocity += gravity;
-      }
+      
       if (Input.GetKeyUp("f") && !isFreebody) {
         transform.parent = null;
         rb.isKinematic = false;
@@ -44,6 +41,11 @@ public class GuyMovement : MonoBehaviour
       //this.transform.position = collision.gameObject.transform.position;
     }
 
+    void FixedUpdate () {
+        if (isFreebody) {
+            rb.AddForce(gravity);
+        }
+    }
     /*private void OnCollisionEnter2D(Collision2D collision) {
       if (collision.gameObject.CompareTag("Player") && Input.GetKeyUp("e")) {
         //spawned = false;

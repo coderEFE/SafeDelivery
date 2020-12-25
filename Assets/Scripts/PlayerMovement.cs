@@ -9,30 +9,30 @@ public class PlayerMovement : MonoBehaviour {
 
     public Animator anim;
 
-    public float jumpForce = 20f;
+    public float jumpForce = 2f;
     public Transform feet;
     public LayerMask groundLayers;
+    public Transform playerSight;
+    public RaycastHit2D groundBelow;
+    public RaycastHit2D ceilingAbove;
+    public RaycastHit2D hitGround;
+    public RaycastHit2D hitCeiling;
 
-    Vector2 gravity = new Vector2(0f, -0.07f);
+    Vector2 gravity = new Vector2(0f, -40f);
 
     // Start is called before the first frame update
     void Start() {
-
+        
     }
 
     // Update is called once per frame
     void Update() {
-      rb.velocity += gravity;
+      //rb.velocity += gravity;
 
       //change gravity
       if (Input.GetKeyUp("g")) {
-        if (gravity.y < 0) {
-          gravity.y = 0.07f;
-          transform.localScale = new Vector3(transform.localScale.x, -1f, transform.localScale.z);
-        } else {
-          gravity.y = -0.07f;
-          transform.localScale = new Vector3(transform.localScale.x, 1f, transform.localScale.z);
-        }
+        gravity.y = -gravity.y;
+        transform.localScale = new Vector3(transform.localScale.x, -transform.localScale.y, transform.localScale.z);
       }
 
       mx = Input.GetAxisRaw("Horizontal");
@@ -56,9 +56,15 @@ public class PlayerMovement : MonoBehaviour {
 
       //TODO: change isGrounded criteria
       anim.SetBool("IsGrounded", rb.velocity.y < 0.05f);
+
+      groundBelow = Physics2D.Raycast(transform.position, -transform.up, 10f, groundLayers);
+      ceilingAbove = Physics2D.Raycast(transform.position, transform.up, 10f, groundLayers);
+      hitGround = Physics2D.Raycast(transform.position, -transform.up, 1f, groundLayers);
+      hitCeiling = Physics2D.Raycast(transform.position, transform.up, 1f, groundLayers);
     }
 
     private void FixedUpdate() {
+      rb.AddForce(gravity);
       Vector2 movement = new Vector2(mx * movementSpeed, rb.velocity.y);
 
       rb.velocity = movement;
