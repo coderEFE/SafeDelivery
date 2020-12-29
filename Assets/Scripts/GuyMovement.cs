@@ -9,12 +9,12 @@ public class GuyMovement : MonoBehaviour
     bool isFreebody = true;
     
     Vector2 gravity = new Vector2(0f, -40f);
-    Transform PlayerPos;
+    PlayerMovement player;
     Vector2 axis;
 
     // Start is called before the first frame update
     void Start() {
-      PlayerPos = GameObject.Find("Player").GetComponent<PlayerMovement>().transform;
+      player = GameObject.Find("Player").GetComponent<PlayerMovement>();
     }
 
     //TODO: Fix wierd collisions with other objects when being held by player
@@ -31,12 +31,12 @@ public class GuyMovement : MonoBehaviour
         //rb.angularVelocity = Random.Range(-10, 10);
         //Debug.Log(axis);
       }
-      if (Vector2.Distance(GameObject.Find("Player").GetComponent<PlayerMovement>().transform.position, transform.position) < 2 && Input.GetKeyUp("e")) {
-        transform.parent = GameObject.Find("Player").GetComponent<PlayerMovement>().transform;
+      if (Vector2.Distance(player.transform.position, transform.position) < 2 && Input.GetKeyUp("e")) {
+        transform.parent = player.transform;
         rb.isKinematic = true;
         rb.velocity = new Vector2();
         isFreebody = false;
-        transform.position = new Vector3(GameObject.Find("Player").GetComponent<PlayerMovement>().transform.position.x + 1, GameObject.Find("Player").GetComponent<PlayerMovement>().transform.position.y, GameObject.Find("Player").GetComponent<PlayerMovement>().transform.position.z);
+        transform.position = new Vector3(player.facingRight ? player.transform.position.x - 1 : player.transform.position.x + 1, player.transform.position.y, player.transform.position.z);
       }
       //this.transform.position = collision.gameObject.transform.position;
     }

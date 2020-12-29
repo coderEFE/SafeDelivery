@@ -43,12 +43,16 @@ public class EnemyShoot : MonoBehaviour {
             ShootAtPlayer();
             timeUntilFire = Time.time + fireRate;
           } else if (lookAtGuy.collider != null && lookAtGuy.collider.gameObject.name.Equals("LittleGuy")) {
-            Debug.Log(lookAtGuy.collider.gameObject.name);
+            //Debug.Log(lookAtGuy.collider.gameObject.name);
             ShootAtLittleGuy();
             timeUntilFire = Time.time + fireRate;
           }
         }
         
+    }
+
+    void FixedUpdate() {
+      firingPoint.position = transform.position;
     }
 
     void ShootAtLittleGuy () {

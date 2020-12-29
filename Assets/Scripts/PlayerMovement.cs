@@ -9,7 +9,7 @@ public class PlayerMovement : MonoBehaviour {
 
     public Animator anim;
 
-    public float jumpForce = 2f;
+    public float jumpForce = 20f;
     public Transform feet;
     public LayerMask groundLayers;
     public Transform playerSight;
@@ -17,6 +17,8 @@ public class PlayerMovement : MonoBehaviour {
     public RaycastHit2D ceilingAbove;
     public RaycastHit2D hitGround;
     public RaycastHit2D hitCeiling;
+
+    public bool facingRight = true;
 
     Vector2 gravity = new Vector2(0f, -40f);
 
@@ -41,21 +43,23 @@ public class PlayerMovement : MonoBehaviour {
         Jump();
       }
 
-      //flip horizontally
-      if (mx > 0f) {
-        transform.localScale = new Vector3(1f, transform.localScale.y, transform.localScale.z);
-      } else if (mx < 0f) {
-        transform.localScale = new Vector3(-1f, transform.localScale.y, transform.localScale.z);
-      }
-      //flip vertically
-      /*if (gravity.y < 0 && transform.localScale.y == -1f) {
-        transform.localScale *= new Vector3(1f, 1f, 1f);
-      } else if (gravity.y > 0 && transform.localScale.y == 1f) {
-        transform.localScale *= new Vector3(1f, -1f, 1f);
-      }*/
+    //flip horizontally
+    if (mx > 0) {
+      facingRight = true;
+    } else if (mx < 0) {
+      facingRight = false;
+    }
+    transform.localScale = new Vector3(facingRight ? 1f : -1f, transform.localScale.y, transform.localScale.z);
 
-      //TODO: change isGrounded criteria
-      anim.SetBool("IsGrounded", rb.velocity.y < 0.05f);
+    //flip vertically
+    /*if (gravity.y < 0 && transform.localScale.y == -1f) {
+      transform.localScale *= new Vector3(1f, 1f, 1f);
+    } else if (gravity.y > 0 && transform.localScale.y == 1f) {
+      transform.localScale *= new Vector3(1f, -1f, 1f);
+    }*/
+
+    //TODO: change isGrounded criteria
+    anim.SetBool("IsGrounded", rb.velocity.y < 0.05f);
 
       groundBelow = Physics2D.Raycast(transform.position, -transform.up, 10f, groundLayers);
       ceilingAbove = Physics2D.Raycast(transform.position, transform.up, 10f, groundLayers);

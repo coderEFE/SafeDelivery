@@ -8,10 +8,10 @@ public class PlayerManager : MonoBehaviour {
     public GameObject bulletPrefab;
 
     float timeUntilFire;
-    //PlayerMovement pm;
+    PlayerMovement pm;
     // Start is called before the first frame update
     void Start() {
-      //pm = GameObject.GetComponent<PlayerMovement>();
+      pm = GameObject.Find("Player").GetComponent<PlayerMovement>();
     }
 
     // Update is called once per frame
@@ -24,6 +24,10 @@ public class PlayerManager : MonoBehaviour {
 
     void Shoot () {
       Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+      pm.facingRight = (mousePos.x >= transform.position.x);
+      /*if (mousePos >= transform.position) {
+        pm.facingRight = true;
+      }*/
       float angle = Mathf.Atan((mousePos.y - firingPoint.position.y) / (mousePos.x - firingPoint.position.x));
       //Debug.Log(angle);
       Bullet bullet = Instantiate(bulletPrefab, firingPoint.position, Quaternion.Euler(new Vector3(0f, 0f, angle))).GetComponent<Bullet>();
