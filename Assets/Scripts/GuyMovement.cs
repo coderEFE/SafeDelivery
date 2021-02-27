@@ -5,53 +5,69 @@ using UnityEngine;
 public class GuyMovement : MonoBehaviour
 {
     public Rigidbody2D rb;
+    public float maxHealth;
+    public float currentHealth;
     //public Collider2D collider2D;
     bool isFreebody = true;
-    
+
     Vector2 gravity = new Vector2(0f, -40f);
+    public LayerMask groundLayers;
+    public LayerMask shieldLayer;
     PlayerMovement player;
     Vector2 axis;
+    Transform shield;
 
     // Start is called before the first frame update
     void Start() {
+      currentHealth = maxHealth;
       player = GameObject.Find("Player").GetComponent<PlayerMovement>();
+      shield = transform.GetChild(0);
+      Physics2D.IgnoreCollision(this.GetComponent<Collider2D>(), GameObject.Find("Player").GetComponent<Collider2D>(), true);
     }
 
     //TODO: Fix wierd collisions with other objects when being held by player
     // Update is called once per frame
     void Update() {
+      if (currentHealth <= 0f) {
+  			Destroy(gameObject);
+  		}
       axis = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
-      
+
       if (Input.GetKeyUp("f") && !isFreebody) {
+        //Physics2D.IgnoreCollision(this.GetComponent<Collider2D>(), GameObject.Find("Player").GetComponent<Collider2D>(), false);
         transform.parent = null;
         rb.isKinematic = false;
-        isFreebody = true;
-        Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-        //rb.velocity = new Vector2(Mathf.Clamp(mousePos.x - transform.position.x, -1, 1) * 10f, Mathf.Clamp(mousePos.y - transform.position.y, -1, 1) * 10f);
-        //rb.angularVelocity = Random.Range(-10, 10);
+        rb.velocity = player.rb.velocity * 0.8f;
+        //transform.position = new Vector3(player.facingRight ? player.transform.position.x - 1f : player.transform.position.x + 1f, player.transform.position.y, player.transform.position.z);
+        /*Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+        rb.velocity = new Vector2(Mathf.Clamp(mousePos.x - transform.position.x, -1, 1) * 10f, Mathf.Clamp(mousePos.y - transform.position.y, -1, 1) * 10f);
+        rb.angularVelocity = Random.Range(-1000f, 1000f);*/
         //Debug.Log(axis);
-      }
-      if (Vector2.Distance(player.transform.position, transform.position) < 2 && Input.GetKeyUp("e")) {
+        if (!shield.gameObject.GetComponent<ShieldManager>().destroyed) shield.gameObject.SetActive(true);
+        //shield.gameObject.GetComponent<SpriteRenderer>().enabled = true;
+        isFreebody = true;
+      } else if (Vector2.Distance(player.transform.position, transform.position) < 2 && Input.GetKeyUp("f") && isFreebody) {
+        //Physics2D.IgnoreCollision(this.GetComponent<Collider2D>(), GameObject.Find("Player").GetComponent<Collider2D>(), true);
         transform.parent = player.transform;
         rb.isKinematic = true;
         rb.velocity = new Vector2();
+        rb.rotation = 0f;
+        shield.gameObject.SetActive(false);
+        //shield.gameObject.GetComponent<SpriteRenderer>().enabled = false;
+        transform.position = new Vector3(player.facingRight ? player.transform.position.x - 0.5f : player.transform.position.x + 0.5f, player.transform.position.y, player.transform.position.z);
         isFreebody = false;
-        transform.position = new Vector3(player.facingRight ? player.transform.position.x - 1 : player.transform.position.x + 1, player.transform.position.y, player.transform.position.z);
       }
       //this.transform.position = collision.gameObject.transform.position;
     }
 
     void FixedUpdate () {
-        if (isFreebody) {
-            rb.AddForce(gravity);
-        }
-    }
-    /*private void OnCollisionEnter2D(Collision2D collision) {
-      if (collision.gameObject.CompareTag("Player") && Input.GetKeyUp("e")) {
-        //spawned = false;
-        transform.parent = GameObject.Find("Player").GetComponent<PlayerMovement>().transform;
-        rb.isKinematic = true;
-        transform.position = new Vector3(GameObject.Find("Player").GetComponent<PlayerMovement>().transform.position.x + 1, GameObject.Find("Player").GetComponent<PlayerMovement>().transform.position.y, GameObject.Find("Player").GetComponent<PlayerMovement>().transform.position.z);
+      if (isFreebody) {
+          rb.AddForce(gravity);
       }
-    }*/
+    }
+    private void OnCollisionEnter2D(Collision2D collision) {
+  		if (collision.gameObject.CompareTag("EnemyBullet")) {
+  			currentHealth -= collision.gameObject.GetComponent<EnemyBullet>().bulletDamage;
+  		}
+  	}
 }

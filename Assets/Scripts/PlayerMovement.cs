@@ -70,7 +70,7 @@ public class PlayerMovement : MonoBehaviour {
 		   transform.localScale *= new Vector3(1f, -1f, 1f);
 		   }*/
 
-		//TODO: change isGrounded criteria
+		//TODO: change isGrounded criteria for player animation
 		anim.SetBool("IsGrounded", rb.velocity.y < 0.05f);
 
 		groundBelow = Physics2D.Raycast(transform.position, -transform.up, 10f, groundLayers);

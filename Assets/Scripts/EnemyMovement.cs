@@ -7,44 +7,91 @@ using UnityEngine.Assertions;
 
 public class EnemyMovement : MonoBehaviour {
 	public Transform feet;
-	public float speed = 10f;
+	public float speed = 5f;
 	public float jumpForce = 20f;
 	public Rigidbody2D rb;
 	Vector2 gravity = new Vector2(0f, -40f);
 	public LayerMask groundLayers;
+	public LayerMask enemyLayer;
+	public LayerMask shieldLayer;
+	PlayerMovement player;
+	GuyMovement littleGuy;
+	RaycastHit2D lookAtGuy;
 
 	public Transform groundCheck;
 	bool isFacingRight = true;
 	//variables for enemy "kip up"
 	float kipupVelocity;
 	float kipupTime = 0.25f;
+	//whether or not enemy is flipped over (not standing)
+	bool flipped = false;
 
-	RaycastHit2D hit;
-	bool following = true;
+	RaycastHit2D checkSide;
+	bool following = false;
 	public Tilemap tilemap;
 	NavPoint[,] navMesh;
 	bool genNavMesh = true;
-	bool genPath = true;
+	bool genPath = false;
+	bool genTarget = false;
 	Vector2[,] tileWorldPoints;
 
 	//TODO: update these and A* path everytime the player moves to a different location or when they enter AI's range
 	ArrayList completedPath = new ArrayList();
+	double currGCost = double.PositiveInfinity;
 	int currentStep = 0;
+	NavPoint startPoint = new NavPoint();
+	NavPoint targetPoint = new NavPoint();
+	int start = 0;
+	int target = 0;
+	Vector2 targetVector2 = new Vector2();
+	Vector2 movementPos = new Vector2();
 	bool jumped = false;
-	float jumpWait = 1f;
-	float timeUntilJump = 0f;
-	bool prepJump = false;
-	bool afterJump = false;
 	bool align = true;
+	//TODO: write explanation of states
+	enum States {
+		Patrolling,
+		Suspicious,
+		Alert,
+		Following,
+		Flee,
+		Resting
+	};
+	States AIState = States.Patrolling;
+	enum Targets {
+		Player,
+		LittleGuy,
+		Flee
+	};
+	Targets currTarget = Targets.Player;
+	Vector2 patrolStart;
+	//trigger radii
+	int alertRadius = 10;
+	int susRadius = 5;
+	//int followRadius = 10;
+	int outOfFollowRadius = 20;
+	//timer for AI suspicion
+	float susTime = 3f;
+	float timeUntilNotSus = 3f;
+	//rerun step if AI somehow failed to reach it within 2 seconds
+	public float failSafeTime = 2f;
+	float timeUntilFailSafe = 2f;
 	//TODO: update navMesh and navLinks evertime the AI enters a new chunk of the world or conditions change
 
 	// Start is called before the first frame update
 	void Start() {
-
+		player = GameObject.Find("Player").GetComponent<PlayerMovement>();
+		littleGuy = GameObject.Find("LittleGuy").GetComponent<GuyMovement>();
+		targetVector2 = (Vector2)player.transform.position;
+		patrolStart = (Vector2)transform.position;
 	}
 
 	// Update is called once per frame
 	void Update() {
+		//update some vars
+		checkSide = Physics2D.Raycast(groundCheck.position, -transform.up, 1f, groundLayers);
+
+		feet.position = new Vector3(transform.position.x, transform.position.y - 0.5f, transform.position.z);
+		groundCheck.position = new Vector2(transform.position.x + (isFacingRight ? 0.5f : -0.5f), transform.position.y - 0.3f);
 		/*NAVMESH*/
 		//generate the navMesh in the first frame of update
 		if (tilemap != null && genNavMesh) {
@@ -111,6 +158,7 @@ public class EnemyMovement : MonoBehaviour {
 				for (int x = 0; x < navMesh.GetLength(1); x++) {
 					//Generate walkable navlinks
 					if (navMesh[y, x].type != "none" && x < navMesh.GetLength(1) - 1 && navMesh[y, x + 1].type != "none") {
+						//walking linkScore is 1f
 						//add link from left to right
 						NavLink link = new NavLink();
 						link.Init(navMesh[y, x + 1], 1f, new JumpTrajectory());
@@ -121,7 +169,7 @@ public class EnemyMovement : MonoBehaviour {
 						navMesh[y, x + 1].AddNavLink(link2);
 					}
 					//Generate falling navlinks
-					if (navMesh[y, x].type != "none" && navMesh[y, x].type != "platform" && x < navMesh.GetLength(1) - 1 && x > 0) {
+					if (navMesh[y, x].type != "none" && navMesh[y, x].type != "platform") {
 						int a = 0;
 						int b = 0;
 						switch (navMesh[y, x].type) {
@@ -139,29 +187,31 @@ public class EnemyMovement : MonoBehaviour {
 								break;
 						}
 						for (int i = a; i <= b; i++) {
-							int targetColumn = x;
-							if (i == 0) {
-								targetColumn = x - 1;
-							} else {
-								targetColumn = x + 1;
-							}
-							int targetRow = y;
-							if (navMesh[y, targetColumn].type == "none") {
-								targetRow = y - 1;
-								while (targetRow > 0 && allTiles[targetColumn + targetRow * bounds.size.x] == null) {
-									if (navMesh[targetRow, targetColumn].type != "none") {
-										NavLink link = new NavLink();
-										link.Init(navMesh[targetRow, targetColumn], y - targetRow, new JumpTrajectory());
-										navMesh[y, x].AddNavLink(link);
-										break;
+							if ((i == 0 && x > 0) || (i == 1 && x < navMesh.GetLength(1) - 1)) {
+								int targetColumn = x;
+								if (i == 0) {
+									targetColumn = x - 1;
+								} else {
+									targetColumn = x + 1;
+								}
+								int targetRow = y;
+								if (navMesh[y, targetColumn].type == "none") {
+									targetRow = y - 1;
+									while (targetRow > 0 && allTiles[targetColumn + targetRow * bounds.size.x] == null) {
+										if (navMesh[targetRow, targetColumn].type != "none") {
+											NavLink link = new NavLink();
+											//linkScore is half the length of the fall
+											link.Init(navMesh[targetRow, targetColumn], (y - targetRow) / 2f, new JumpTrajectory());
+											navMesh[y, x].AddNavLink(link);
+											break;
+										}
+										targetRow--;
 									}
-									targetRow--;
 								}
 							}
 						}
 					}
 					//generate jumping navlinks
-					//TODO: implement a system that removes previous link if a new one is found that goes from the same platform to another but is closer
 					if (navMesh[y, x].type != "none") {
 						float maxJumpDistance = 6f; // 8f
 						for (int y2 = 0; y2 < navMesh.GetLength(0); y2++) {
@@ -196,8 +246,10 @@ public class EnemyMovement : MonoBehaviour {
 											//Debug.Log(pointCollider != null);
 											//allTiles[tileIndexX + tileIndexY * bounds.size.x] != null &&
 											//pointCollider != null
-											//Mathf.Abs(xOffset) != 1f
-											if ((Mathf.Abs(xOffset) != 1f || upBlocked.collider != null) && tileIndexX >= 0 && tileIndexX < bounds.size.x && tileIndexY >= 0 && tileIndexY < bounds.size.y && Vector2.Distance((Vector2)jump.GetJumpPoints()[j], navMesh[y2, x2].coors) > 0.3f && (pointCollider != null || allTiles[tileIndexX + tileIndexY * bounds.size.x] != null)) {
+											//(Mathf.Abs(xOffset) != 1f || upBlocked.collider != null || yOffset < 1f)
+											//(Mathf.Abs(xOffset) != 1f ? true : (upBlocked.collider != null && yOffset < 1f)) &&
+											//Vector2.Distance((Vector2)jump.GetJumpPoints()[j], navMesh[y2, x2].coors) > 0.3f &&
+											if ((Mathf.Abs(xOffset) != 1f || upBlocked.collider != null || yOffset < 1f) && Vector2.Distance((Vector2)jump.GetJumpPoints()[j], navMesh[y2, x2].coors) > 0.3f && (pointCollider != null || (tileIndexX >= 0 && tileIndexX < bounds.size.x && tileIndexY >= 0 && tileIndexY < bounds.size.y && allTiles[tileIndexX + tileIndexY * bounds.size.x] != null))) {
 												//Debug.Log("blocked");
 												jumpBlocked = true;
 												break;
@@ -225,8 +277,8 @@ public class EnemyMovement : MonoBehaviour {
 											}
 											if (addJump) {
 												NavLink link = new NavLink();
-												//TODO: change the way that link scores are assigned to navlinks
-												link.Init(navMesh[y2, x2], time * 2f, jump);
+												//linkScore is 5 times the amount of time it takes to jump (it needs to be high so that A* will prioritize walking)
+												link.Init(navMesh[y2, x2], time * 5f, jump);
 												navMesh[y, x].AddNavLink(link);
 												foundValidJump = true;
 												if (xOffset <= 0) {
@@ -247,13 +299,57 @@ public class EnemyMovement : MonoBehaviour {
 			genNavMesh = false;
 		}
 		/*GENERATE PATH FOR AI*/
+		if (tilemap != null && navMesh != null && genTarget) {
+			//find the ending point on the navMesh
+			targetPoint = new NavPoint();
+			/*if (AIState == States.Flee) {
+				float fleeDistance = 20f;
+				Vector2 fleeVector = ((Vector2)transform.position - (Vector2)player.transform.position).normalized * fleeDistance;
+				//Vector2 fleeVector = (transform.position.x + oppositeVector.x < tileWorldPoints[0, 0].x || transform.position.x + oppositeVector.x > tileWorldPoints[navMesh.GetLength(0) - 1, navMesh.GetLength(1) - 1].x) ? new Vector2(-oppositeVector.x, oppositeVector.y) : oppositeVector;
+				//Debug.Log(fleeVector);
+				movementPos = (Vector2)transform.position + fleeVector;
+			}*/
+			if (AIState == States.Patrolling) {
+				movementPos = new Vector2(Random.Range(patrolStart.x - 5f, patrolStart.x + 5f), Random.Range(patrolStart.y - 5f, patrolStart.y + 5f));
+			} else {
+				switch (currTarget) {
+					case Targets.Player:
+						movementPos = (Vector2)player.transform.position;
+						break;
+					case Targets.LittleGuy:
+						movementPos = (Vector2)littleGuy.transform.position;
+						break;
+					case Targets.Flee:
+						float fleeDistance = 20f;
+						Vector2 fleeVector = ((Vector2)transform.position - (Vector2)player.transform.position).normalized * fleeDistance;
+						//Vector2 fleeVector = (transform.position.x + oppositeVector.x < tileWorldPoints[0, 0].x || transform.position.x + oppositeVector.x > tileWorldPoints[navMesh.GetLength(0) - 1, navMesh.GetLength(1) - 1].x) ? new Vector2(-oppositeVector.x, oppositeVector.y) : oppositeVector;
+						//Debug.Log(fleeVector);
+						movementPos = (Vector2)transform.position + fleeVector;
+						break;
+				}
+			}
+			for (int y = 0; y < navMesh.GetLength(0); y++) {
+				for (int x = 0; x < navMesh.GetLength(1); x++) {
+					if (navMesh[y, x].type != "none") {
+						RaycastHit2D checkWalls = Physics2D.Raycast(movementPos, ((Vector2)navMesh[y, x].coors - movementPos).normalized, Vector2.Distance(navMesh[y, x].coors, movementPos), groundLayers);
+						if ((targetPoint == new NavPoint() || Vector2.Distance(movementPos, navMesh[y, x].coors) < Vector2.Distance(movementPos, targetPoint.coors)) && (AIState == States.Flee || checkWalls.collider == null)) {
+							targetPoint = navMesh[y, x];
+							target = y * navMesh.GetLength(1) + x;
+						}
+						//TODO; say (Vector2)
+						/*RaycastHit2D checkWalls = Physics2D.Raycast(targetVector2, ((Vector2)navMesh[y, x].coors - (Vector2)player.transform.position).normalized, Vector2.Distance(navMesh[y, x].coors, (Vector2)player.transform.position), groundLayers);
+						if ((targetPoint == new NavPoint() || Vector2.Distance((Vector2)player.transform.position, navMesh[y, x].coors) < Vector2.Distance((Vector2)player.transform.position, targetPoint.coors)) && checkWalls.collider == null) {
+							targetPoint = navMesh[y, x];
+							target = y * navMesh.GetLength(1) + x;
+						}*/
+					}
+				}
+			}
+			genTarget = false;
+		}
 		//use the A* algorithm to find the most effecient and fast route from the AI to the player
-		if (tilemap != null && genPath && navMesh != null) {
-			//find the starting and ending point on the navMesh
-			NavPoint startPoint = new NavPoint();
-			NavPoint targetPoint = new NavPoint();
-			int start = 0;
-			int target = 0;
+		if (tilemap != null && genPath && navMesh != null && startPoint != new NavPoint() && targetPoint != new NavPoint()) {
+			//find the starting point on the navMesh
 			for (int y = 0; y < navMesh.GetLength(0); y++) {
 				for (int x = 0; x < navMesh.GetLength(1); x++) {
 					if (navMesh[y, x].type != "none") {
@@ -261,26 +357,23 @@ public class EnemyMovement : MonoBehaviour {
 							startPoint = navMesh[y, x];
 							start = y * navMesh.GetLength(1) + x;
 						}
-						if (targetPoint == new NavPoint() || Vector2.Distance(GameObject.Find("Player").GetComponent<PlayerMovement>().transform.position, navMesh[y, x].coors) < Vector2.Distance(GameObject.Find("Player").GetComponent<PlayerMovement>().transform.position, targetPoint.coors)) {
-							targetPoint = navMesh[y, x];
-							target = y * navMesh.GetLength(1) + x;
-						}
 					}
 				}
 			}
 			//1 dimensional size of navMesh
 			int n = navMesh.GetLength(0) * navMesh.GetLength(1);
-			Debug.Log(target);
-			//Debug.Log(AStar(start, target, targetPoint, ref prevPoints));
-			completedPath = ReconstructPath(n, start, target, targetPoint);
-			/*foreach (NavPoint nav in completedPath) {
-				Debug.Log(nav.coors);
-			}*/
+			//Debug.Log(target);
+			ArrayList outputPath = ReconstructPath(n, start, target, targetPoint);
+			if (outputPath != new ArrayList()) {
+				currentStep = 0;
+				completedPath = outputPath;
+			}
 
 			genPath = false;
 		}
-
-		if (following && completedPath.Count > 0) {
+		//move the AI to the player using the steps listed in the generated path
+		// && (AIState == States.Following || AIState == States.Flee)
+		if (!flipped && !genNavMesh && !genPath && !genTarget && completedPath.Count > 0) {
 			if (currentStep < completedPath.Count - 1) {
 				//find current navlink
 				NavLink currentLink = null;
@@ -290,10 +383,10 @@ public class EnemyMovement : MonoBehaviour {
 						break;
 					}
 				}
+				//if there is a link, move to the link's destination navPoint
 				if (currentLink != null) {
 					//Debug.Log("move to: " + currentLink.destPoint.coors);
-					//(timeUntilJump < Time.fixedTime && currentLink.jumpToDest.jumpForce == new Vector2() && !jumped) || (timeUntilJump < Time.fixedTime && !jumped && Vector2.Distance(transform.position, ((NavPoint)completedPath[currentStep]).coors) >= 0.1f && currentLink.jumpToDest.jumpForce != new Vector2())
-					//&& Vector2.Distance(transform.position, currentLink.destPoint.coors) >= 0.05f
+					//make AI move to next step
 					if (!align && !jumped && currentLink.jumpToDest.jumpForce == new Vector2()) {
 						//Debug.Log("move");
 						if (Vector2.Distance(transform.position, new Vector2(currentLink.destPoint.coors.x, transform.position.y)) >= 0.1f) {
@@ -303,55 +396,48 @@ public class EnemyMovement : MonoBehaviour {
 								rb.velocity = new Vector2(speed, rb.velocity.y);
 							}
 						}
+						//if its a fall-link
 						if (currentLink.destPoint.coors.y < transform.position.y && Vector2.Distance(transform.position, new Vector2(currentLink.destPoint.coors.x, transform.position.y)) < 0.1f) {
 							//Debug.Log("drop");
+							rb.rotation = 0f;
 							transform.position = new Vector3(currentLink.destPoint.coors.x, transform.position.y, transform.position.z);
 						}
 					}
-					//TODO: need to add algorithms for fall links and for jumps that are one tile to the right or left
+					//align AI before it jumps
 					if (align && !jumped && (Vector2)transform.position != ((NavPoint)completedPath[currentStep]).coors && Vector2.Distance(transform.position, ((NavPoint)completedPath[currentStep]).coors) < 1f) {
 						//Debug.Log("align");
-						if (((NavPoint)completedPath[currentStep]).coors.x < transform.position.x) {
-							rb.velocity = new Vector2(-speed, rb.velocity.y);
-						} else if (((NavPoint)completedPath[currentStep]).coors.x > transform.position.x) {
-							rb.velocity = new Vector2(speed, rb.velocity.y);
-						}
-						if (Vector2.Distance(transform.position, ((NavPoint)completedPath[currentStep]).coors) < 0.05f) {
-							align = false;
-							transform.position = ((NavPoint)completedPath[currentStep]).coors;
-						}
+						Align(((NavPoint)completedPath[currentStep]).coors);
 					}
+					//make AI jump to next step
 					if (!align && !jumped && currentLink.jumpToDest.jumpForce != new Vector2()) {
-						//if (Vector2.Distance(transform.position, ((NavPoint)completedPath[currentStep]).coors) < 0.05f) {
-							//transform.position = ((NavPoint)completedPath[currentStep]).coors;
-							//rb.rotation = 0f;
-							//Debug.Log("jump" + (Vector2)currentLink.jumpToDest.jumpForce);
-							//Debug.Log("jump to: " + currentLink.destPoint.coors);
-							//special case if the jump is being impeded by an adjacent block
-							if (Mathf.Abs(currentLink.destPoint.coors.x - ((NavPoint)completedPath[currentStep]).coors.x) == 1f) {
-								if (Vector2.Distance(transform.position, ((NavPoint)completedPath[currentStep]).coors) < 0.1f) {
-									rb.velocity = new Vector2(0f, currentLink.jumpToDest.jumpForce.y * 1.05f);
-								}
-								if (transform.position.y >= currentLink.destPoint.coors.y) {
-									rb.velocity = new Vector2(currentLink.jumpToDest.jumpForce.x * 1f, rb.velocity.y);
-									jumped = true;
-								}
-							} else {
-								rb.velocity = (Vector2)currentLink.jumpToDest.jumpForce * 1.05f;
+						//Debug.Log("jump" + (Vector2)currentLink.jumpToDest.jumpForce);
+						//Debug.Log("jump to: " + currentLink.destPoint.coors);
+						//special case if the jump is being impeded by an adjacent block
+						if (Mathf.Abs(currentLink.destPoint.coors.x - ((NavPoint)completedPath[currentStep]).coors.x) == 1f) {
+							if (Vector2.Distance(transform.position, ((NavPoint)completedPath[currentStep]).coors) < 0.1f) {
+								rb.velocity = new Vector2(0f, currentLink.jumpToDest.jumpForce.y * 1.05f);
+							}
+							if (transform.position.y >= currentLink.destPoint.coors.y) {
+								transform.position = new Vector2(currentLink.jumpToDest.jumpForce.x > 0f ? currentLink.destPoint.coors.x - 1 : currentLink.destPoint.coors.x + 1, currentLink.destPoint.coors.y);
+								rb.velocity = new Vector2(currentLink.jumpToDest.jumpForce.x * 1f, rb.velocity.y);
 								jumped = true;
 							}
-							//afterJump = true;
-						/*} else {
-							transform.position = ((NavPoint)completedPath[currentStep]).coors;
-						}*/
+						} else {
+							//jump normally
+							rb.velocity = (Vector2)currentLink.jumpToDest.jumpForce * 1.05f;
+							jumped = true;
+						}
 					}
+					//Debug.Log("time " + (timeUntilFailSafe - Time.time));
 					if (rb.velocity.y < 0 && IsGrounded() && jumped) {
 						jumped = false;
 						align = true;
-						//TODO: fix cases when enemy is jumping downward and misses platform
-						if (currentStep < completedPath.Count - 1 && currentLink.jumpToDest.jumpForce != new Vector2() && transform.position.y >= ((NavPoint)completedPath[currentStep + 1]).coors.y) {
+						// && Vector2.Distance(transform.position, ((NavPoint)completedPath[currentStep]).coors) > 1f
+						if (currentLink.jumpToDest.jumpForce != new Vector2() && currentStep < completedPath.Count - 1 && transform.position.y >= ((NavPoint)completedPath[currentStep + 1]).coors.y) {
 							//Debug.Log("next");
 							currentStep++;
+							timeUntilFailSafe = Time.time + failSafeTime;
+							//genPath = true;
 						}
 					}
 					/*if (!jumped && Vector2.Distance(transform.position, ((NavPoint)completedPath[currentStep + 1]).coors) < 0.1f) {
@@ -359,35 +445,156 @@ public class EnemyMovement : MonoBehaviour {
 						rb.rotation = 0f;
 					}*/
 				}
-				if (!jumped && currentStep < completedPath.Count - 1 && Vector2.Distance(transform.position, ((NavPoint)completedPath[currentStep + 1]).coors) < 0.1f) {
-					//afterJump = false;
-					//align = false;
+				if (!jumped && IsGrounded() && currentStep < completedPath.Count - 1 && Vector2.Distance(transform.position, ((NavPoint)completedPath[currentStep + 1]).coors) < 0.1f) {
 					//Debug.Log("step");
 					currentStep++;
-				}
-				//Debug.Log(IsGrounded());
-				//move to next step if reached the current point
-				/*if (!jumped && Vector2.Distance(transform.position, ((NavPoint)completedPath[currentStep + 1]).coors) < 0.5f) {
-					currentStep ++;
-					if (((NavPoint)completedPath[currentStep]).type != "none" && ((NavPoint)completedPath[currentStep]).type != "platform") {
-						transform.position = ((NavPoint)completedPath[currentStep]).coors;
-						rb.rotation = 0f;
+					align = true;
+					timeUntilFailSafe = Time.time + failSafeTime;
+					if (Vector2.Distance(transform.position, targetVector2) <= outOfFollowRadius && AIState == States.Following) {
+						//targetVector2 = (Vector2)player.transform.position;
+						genTarget = true;
 					}
-				}*/
-				/*Debug.Log("step: " + currentStep);
-				if (((NavPoint)completedPath[currentStep + 1]).coors.y > ((NavPoint)completedPath[currentStep]).coors.y) {
-					//Debug.Log("wait");
-					//timeUntilJump = Time.time + jumpWait;
-					prepJump = true;
-				}*/
+					genPath = true;
+				}
+				if (!jumped && IsGrounded() && Vector2.Distance(transform.position, ((NavPoint)completedPath[currentStep]).coors) < 0.1f) {
+					if (Vector2.Distance(transform.position, targetVector2) <= outOfFollowRadius && AIState == States.Following) {
+						//targetVector2 = (Vector2)player.transform.position;
+						genTarget = true;
+					}
+					genPath = true;
+				}
+			} else if (currentStep >= completedPath.Count - 1) {
+				//align AI at final step if it has reached its destination
+				//Debug.Log("STOP");
+				if (!jumped && (Vector2)transform.position != ((NavPoint)completedPath[completedPath.Count - 1]).coors && Vector2.Distance(transform.position, ((NavPoint)completedPath[completedPath.Count - 1]).coors) < 1f) {
+					Align(((NavPoint)completedPath[completedPath.Count - 1]).coors);
+				}
+				if ((Vector2)transform.position == ((NavPoint)completedPath[completedPath.Count - 1]).coors) {
+					rb.velocity = new Vector2(0f, rb.velocity.y);
+					if (AIState == States.Following) {
+						AIState = States.Alert;
+					} else if (AIState == States.Flee) {
+						AIState = States.Resting;
+					}
+				}
 			}
 		}
 		//Debug.Log(jumped);
+		//AI decision making based on different States of the AI
+		if (!flipped) {
+			//TODO: change length of "sight" for AI
+			//RaycastHit2D inSight = Physics2D.CircleCast(transform.position, 0.2f, ((Vector2)targetVector2 - (Vector2)transform.position).normalized, alertRadius, groundLayers);
+			RaycastHit2D inSight = Physics2D.Raycast(transform.position, ((Vector2)targetVector2 - (Vector2)transform.position).normalized, alertRadius, groundLayers);
+			switch (AIState) {
+				case States.Patrolling:
+					if (currentStep >= completedPath.Count - 1) {
+						speed = 3f;
+						//Debug.Log("new pos");
+						align = true;
+						genTarget = true;
+						genPath = true;
+					}
+					if (Vector2.Distance(transform.position, targetVector2) <= alertRadius && IsGrounded()) {
+						if (inSight.collider == null) {
+							AIState = States.Alert;
+						} else if (player.rb.velocity.magnitude >= 5f && Vector2.Distance(transform.position, targetVector2) <= susRadius) {
+							AIState = States.Suspicious;
+							timeUntilNotSus = Time.time + susTime;
+						}
+					}
+					break;
+				case States.Suspicious:
+					if (timeUntilNotSus + 1 - susTime < Time.time && timeUntilNotSus >= Time.time && player.rb.velocity.magnitude >= 5f) {
+						AIState = States.Alert;
+					} else if (timeUntilNotSus < Time.time) {
+						AIState = States.Patrolling;
+					}
+					break;
+				case States.Alert:
+					//start to follow player if within a certain range
+					//use circle cast to see if a bullet with radius 0.2f would hit player
+					if (currTarget == Targets.LittleGuy || Vector2.Distance(transform.position, targetVector2) > alertRadius || inSight.collider != null) {
+						speed = 5f;
+						AIState = States.Following;
+						//targetVector2 = (Vector2)player.transform.position;
+						align = true;
+						genTarget = true;
+						genPath = true;
+						//Debug.Log("FOLLOW");
+					}
+					break;
+				case States.Following:
+					if (Vector2.Distance(transform.position, targetVector2) > outOfFollowRadius && currentStep >= completedPath.Count - 1) {
+						AIState = States.Patrolling;
+						patrolStart = (Vector2)transform.position;
+					}
+					/*if (Vector2.Distance(transform.position, targetVector2) <= alertRadius && inSight.collider == null) {
+						AIState = States.Alert;
+					}*/
+					break;
+				case States.Flee:
+					break;
+				case States.Resting:
+					if (this.GetComponent<EnemyManager>().currentHealth < this.GetComponent<EnemyManager>().maxHealth) {
+						this.GetComponent<EnemyManager>().currentHealth += 0.1f;
+					}
+					if (this.GetComponent<EnemyManager>().currentHealth >= this.GetComponent<EnemyManager>().maxHealth) {
+						AIState = States.Patrolling;
+						patrolStart = (Vector2)transform.position;
+					}
+					break;
+				default:
+					Debug.Log("AIState Unknown");
+					break;
+			}
+		}
+		if (AIState != States.Flee) {
+			if (littleGuy != null) lookAtGuy = Physics2D.CircleCast(transform.position, 0.2f, ((Vector2)littleGuy.transform.position - (Vector2)transform.position).normalized, alertRadius, ~enemyLayer);
+			if (littleGuy != null && lookAtGuy.collider != null && (lookAtGuy.collider.gameObject.name.Equals("LittleGuy") || lookAtGuy.collider.gameObject.name.Equals("Shield"))) {
+				targetVector2 = (Vector2)littleGuy.transform.position;
+				currTarget = Targets.LittleGuy;
+				//Debug.Log("LittleGuy");
+			} else {
+				targetVector2 = (Vector2)player.transform.position;
+				currTarget = Targets.Player;
+				//Debug.Log("player");
+			}
+		}
 
-		hit = Physics2D.Raycast(groundCheck.position, -transform.up, 1f, groundLayers);
+		//refind path to player if something happens to go wrong (AI hasn't moved to correct step in failsafeTime seconds)
+		// && (AIState == States.Following || AIState == States.Flee)
+		if (!flipped && timeUntilFailSafe < Time.time && IsGrounded()) {
+			Debug.Log("failSafe");
+			align = true;
+			timeUntilFailSafe = Time.time + failSafeTime;
+			if (Vector2.Distance(transform.position, targetVector2) <= outOfFollowRadius && AIState == States.Following) {
+				//targetVector2 = (Vector2)player.transform.position;
+				genTarget = true;
+			}
+			genPath = true;
+		}
+		if (AIState != States.Flee && this.GetComponent<EnemyManager>().currentHealth <= 30f && Vector2.Distance(transform.position, player.transform.position) <= alertRadius) {
+			AIState = States.Flee;
+			currTarget = Targets.Flee;
+			speed = 5f;
+			align = true;
+			genTarget = true;
+			genPath = true;
+		}
+		Debug.Log(AIState);
+	}
 
-		feet.position = new Vector3(transform.position.x, transform.position.y - 0.5f, transform.position.z);
-		groundCheck.position = new Vector2(transform.position.x + 0.5f, transform.position.y - 0.3f);
+	//Function to align AI's position with a certain position
+	void Align(Vector2 alignPos) {
+		if (alignPos.x < transform.position.x) {
+			rb.velocity = new Vector2(-speed, rb.velocity.y);
+		} else if (alignPos.x > transform.position.x) {
+			rb.velocity = new Vector2(speed, rb.velocity.y);
+		}
+		if (Vector2.Distance(transform.position, alignPos) < 0.05f) {
+			align = false;
+			transform.position = alignPos;
+		}
 	}
 
 	double AStar(int n, int start, int target, NavPoint targetPoint, ref NavPoint[] prevPoints) {
@@ -456,11 +663,11 @@ public class EnemyMovement : MonoBehaviour {
 	ArrayList ReconstructPath(int n, int start, int target, NavPoint targetPoint) {
 		ArrayList path = new ArrayList();
 		NavPoint[] prev = new NavPoint[n];
-		double gCost = AStar(n, start, target, targetPoint, ref prev);
-		Debug.Log(gCost);
-		if (gCost == double.PositiveInfinity) return path;
-		//or at != startPoint
+		currGCost = AStar(n, start, target, targetPoint, ref prev);
+		//Debug.Log(currGCost);
+		if (currGCost == double.PositiveInfinity) return path;
 		//Debug.Log(prev[((int)(((Vector2)targetPoint.coors).y - tilemap.cellBounds.yMin) * navMesh.GetLength(1) + (int)(((Vector2)targetPoint.coors).x - tilemap.cellBounds.xMin))]);
+		//path.Add(targetPoint);
 		for (NavPoint at = targetPoint; at != null; at = prev[((int)(((Vector2)at.coors).y - tilemap.cellBounds.yMin) * navMesh.GetLength(1) + (int)(((Vector2)at.coors).x - tilemap.cellBounds.xMin))]) {
 			path.Add(at);
 			//Debug.Log("adding: " + at.coors);
@@ -547,32 +754,21 @@ public class EnemyMovement : MonoBehaviour {
 			Gizmos.color = Color.black;
 			Gizmos.DrawSphere(((NavPoint)completedPath[currentStep + 1]).coors, 0.25f);
 		}
-		/*JumpTrajectory jump = new JumpTrajectory();
-		//float angle = Mathf.PI / 2;
-		float xOffset = 5f;
-		float yOffset = 2f;
-		float angle = Mathf.Atan(yOffset / xOffset);
-		float time = 1f;
-		//TODO change time to change the angle of fire
-		Vector2 velocity = new Vector2(xOffset / time, (yOffset / time) - (0.5f * gravity.y * time));
-		jump.Init(new Vector2(0f, 0f), velocity, time, gravity);
-		jump.CalculatePoints();
-		foreach (Vector2 point in jump.GetJumpPoints()) {
-			Gizmos.color = Color.red;
-			Gizmos.DrawSphere(point, 0.1f);
-		}*/
+
+		//Gizmos.color = Color.blue;
+		//Gizmos.DrawSphere(targetVector2, 0.1f);
 	}
 
 	void FixedUpdate () {
 		rb.AddForce(gravity);
-		Vector3 playerPos = GameObject.Find("Player").GetComponent<PlayerMovement>().transform.position;
+		Vector3 playerPos = player.transform.position;
 
 		//Debug.Log(jumped);
 		//float trueRotation = (rb.rotation % 360) + 360f;
 		//Enemy can do a "kip up" when knocked on its side. This move jumps and rotates the enemy so that it is facing the right direction.
 		//Debug.Log(rb.rotation);
 		if (rb.rotation >= 20f || rb.rotation <= -20f) {
-			following = false;
+			flipped = true;
 			if (IsGrounded()) {
 				if (Vector2.Distance(rb.velocity, new Vector2()) < 0.1f) {
 					rb.velocity = new Vector2(rb.velocity.x, jumpForce);
@@ -581,13 +777,30 @@ public class EnemyMovement : MonoBehaviour {
 				rb.rotation = Mathf.SmoothDamp(rb.rotation, 0f, ref kipupVelocity, kipupTime);
 			}
 		} else {
-			following = true;
+			flipped = false;
 		}
+
+		//TODO: allow for some more flexibility in patrolling, like ocassionally pathfinding to another platform
+		//patrol platform if too far from player and not following
+		/*if (!flipped && AIState == States.Patrolling && IsGrounded()) {
+			speed = 3f;
+			if (checkSide.collider != null) {
+				//Debug.Log("ground");
+				if (isFacingRight) {
+					rb.velocity = new Vector2(speed, rb.velocity.y);
+				} else {
+					rb.velocity = new Vector2(-speed, rb.velocity.y);
+				}
+			} else {
+				//Debug.Log("not ground");
+				isFacingRight = !isFacingRight;
+				transform.localScale = new Vector3(-transform.localScale.x, transform.localScale.y, transform.localScale.z);
+			}
+		}*/
 	}
 
 	//check if bottom of enemy is touching any groundLayers
 	public bool IsGrounded() {
-		//TODO: change feet position to always face down
 		Collider2D onGround = Physics2D.OverlapCircle(feet.position, 0.5f, groundLayers);
 
 		return onGround != null;
@@ -619,7 +832,6 @@ class NavLink {
 	//destination coors
 	public NavPoint destPoint;
 	public float linkScore = 1f;
-	//TODO: implement JumpTrajectory
 	public JumpTrajectory jumpToDest = new JumpTrajectory();
 	//Vector2 jumpToDest = new Vector2();
 

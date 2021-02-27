@@ -18,7 +18,7 @@ Vector2 axis;
 PlayerMovement pm;
 // Start is called before the first frame update
 void Start() {
-	pm = GameObject.Find("Player").GetComponent<PlayerMovement>();
+	pm = this.GetComponent<PlayerMovement>();
 }
 
 // Update is called once per frame
@@ -67,6 +67,6 @@ void Shoot() {
 	//Debug.Log(angle);
 	Bullet bullet = Instantiate(bulletPrefab, firingPoint.position, Quaternion.Euler(new Vector3(0f, 0f, angle))).GetComponent<Bullet>();
 	//could set bullet damage here
-	Physics2D.IgnoreCollision(bullet.GetComponent<Collider2D>(), GameObject.Find("Player").GetComponent<Collider2D>());
+	Physics2D.IgnoreCollision(bullet.GetComponent<Collider2D>(), this.GetComponent<Collider2D>());
 }
 }

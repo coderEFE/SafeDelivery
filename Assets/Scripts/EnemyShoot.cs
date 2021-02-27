@@ -12,6 +12,9 @@ public class EnemyShoot : MonoBehaviour {
 	float shootingRange = 10f;
 	float timeUntilFire = 0f;
 	public LayerMask enemyLayer;
+	public LayerMask shieldLayer;
+	PlayerMovement player;
+	GuyMovement littleGuy;
 	RaycastHit2D lookAtPlayer;
 	RaycastHit2D lookAtGuy;
 
@@ -24,27 +27,28 @@ public class EnemyShoot : MonoBehaviour {
 
 	// Start is called before the first frame update
 	void Start() {
-		playerFirstPos = GameObject.Find("Player").GetComponent<PlayerMovement>().transform.position;
+		player = GameObject.Find("Player").GetComponent<PlayerMovement>();
+		littleGuy = GameObject.Find("LittleGuy").GetComponent<GuyMovement>();
+		playerFirstPos = player.transform.position;
 	}
 
 	// Update is called once per frame
 	void Update() {
-		Vector3 playerPos = GameObject.Find("Player").GetComponent<PlayerManager>().transform.position;
-		Vector3 guyPos = GameObject.Find("LittleGuy").GetComponent<GuyMovement>().transform.position;
-		lookAtPlayer = Physics2D.Raycast(transform.position, ((Vector2)playerPos - (Vector2)transform.position).normalized, shootingRange, ~enemyLayer);
-		lookAtGuy = Physics2D.Raycast(transform.position, ((Vector2)guyPos - (Vector2)transform.position).normalized, shootingRange, ~enemyLayer);
+		//assuming that bullets are 0.2f size
+		lookAtPlayer = Physics2D.CircleCast(transform.position, 0.2f, ((Vector2)player.transform.position - (Vector2)transform.position).normalized, shootingRange, ~enemyLayer);
+		if (littleGuy != null) lookAtGuy = Physics2D.CircleCast(transform.position, 0.2f, ((Vector2)littleGuy.transform.position - (Vector2)transform.position).normalized, shootingRange, ~enemyLayer);
 		//Debug.Log(timeUntilFire + " : " + Time.time);
 		if (timeUntilFire < Time.time + 0.02 && timeUntilFire > Time.time + 0.01) {
 			playerFirstPos = GameObject.Find("Player").GetComponent<PlayerMovement>().transform.position;
 		}
 		if (timeUntilFire < Time.time) {
-			if (lookAtPlayer.collider != null && lookAtPlayer.collider.gameObject.name.Equals("Player")) {
-				playerSecondPos = GameObject.Find("Player").GetComponent<PlayerMovement>().transform.position;
-				ShootAtPlayer();
-				timeUntilFire = Time.time + fireRate;
-			} else if (lookAtGuy.collider != null && lookAtGuy.collider.gameObject.name.Equals("LittleGuy")) {
+			if (littleGuy != null && lookAtGuy.collider != null && (lookAtGuy.collider.gameObject.name.Equals("LittleGuy") || lookAtGuy.collider.gameObject.name.Equals("Shield"))) {
 				//Debug.Log(lookAtGuy.collider.gameObject.name);
 				ShootAtLittleGuy();
+				timeUntilFire = Time.time + fireRate;
+			} else if (lookAtPlayer.collider != null && lookAtPlayer.collider.gameObject.name.Equals("Player")) {
+				playerSecondPos = GameObject.Find("Player").GetComponent<PlayerMovement>().transform.position;
+				ShootAtPlayer();
 				timeUntilFire = Time.time + fireRate;
 			}
 		}

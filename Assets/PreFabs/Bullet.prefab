@@ -137,5 +137,4 @@ MonoBehaviour:
   rb: {fileID: 5224497128314288004}
   bulletSpeed: 15
   bulletDamage: 10
-  fromPlayer: 0
-  targetPos: {x: 0, y: 0}
+  bulletLifeSpan: 5

@@ -13,11 +13,12 @@ public class EnemyManager : MonoBehaviour {
 	void Start() {
 		currentHealth = maxHealth;
 		healthBar.SetMaxHealth(maxHealth);
+		Physics2D.IgnoreCollision(this.GetComponent<Collider2D>(), GameObject.Find("LittleGuy").GetComponent<Collider2D>(), true);
 	}
 
 	// Update is called once per frame
 	void Update() {
-		if (healthBar.slider.value > currentHealth) {
+		if (healthBar.slider.value != currentHealth) {
 			healthBar.SetHealth(Mathf.SmoothDamp(healthBar.slider.value, currentHealth, ref healthVelocity, 0.1f));
 		}
 		//die

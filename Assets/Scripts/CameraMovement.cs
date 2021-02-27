@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using UnityEngine;
 
 public class CameraMovement : MonoBehaviour {
+	PlayerMovement player;
+	GuyMovement buddy;
 	private Vector2 velocity;
 	float camSpeedRatio = 10f;
 	float boundRadius = 5f;
@@ -22,6 +24,8 @@ public class CameraMovement : MonoBehaviour {
 
 	// Start is called before the first frame update
 	void Start() {
+		player = GameObject.Find("Player").GetComponent<PlayerMovement>();
+		buddy = GameObject.Find("LittleGuy").GetComponent<GuyMovement>();
 		bottomLeftScreen = new Vector2(0, 0);
 		topRightScreen = Camera.main.ScreenToWorldPoint(new Vector2(Screen.width, Screen.height));
 	}
@@ -35,8 +39,6 @@ public class CameraMovement : MonoBehaviour {
 
 	void FixedUpdate()
 	{
-		PlayerMovement player = GameObject.Find("Player").GetComponent<PlayerMovement>();
-		GuyMovement buddy = GameObject.Find("LittleGuy").GetComponent<GuyMovement>();
 
 		bool groundBelow = player.groundBelow.collider;
 		bool ceilingAbove = player.ceilingAbove.collider;
@@ -111,17 +113,19 @@ public class CameraMovement : MonoBehaviour {
 
 
 
-		float posX = Mathf.SmoothDamp(transform.position.x, (playerCam ? player.transform.position.x + screenOffset.x : buddy.transform.position.x), ref velocity.x, smoothSpeed);
-		float posY = Mathf.SmoothDamp(transform.position.y, (playerCam ? player.transform.position.y + screenOffset.y : buddy.transform.position.y), ref velocity.y, smoothSpeed);
+		float posX = Mathf.SmoothDamp(transform.position.x, (playerCam || GameObject.Find("LittleGuy") == null ? player.transform.position.x + screenOffset.x : buddy.transform.position.x), ref velocity.x, smoothSpeed);
+		float posY = Mathf.SmoothDamp(transform.position.y, (playerCam || GameObject.Find("LittleGuy") == null ? player.transform.position.y + screenOffset.y : buddy.transform.position.y), ref velocity.y, smoothSpeed);
+		transform.position = new Vector3(posX, posY, -10f);
 
 		//TODO: cap camera off at boundaries of the current level/world
 		//posX = Mathf.Clamp(posX, boundLowerLeft.x, boundUpperRight.x);
 		//posY = Mathf.Clamp(posY, boundLowerLeft.y, boundUpperRight.y);
-		transform.position = new Vector3(posX, posY, -10f);
-		//EnemyMovement enemy = GameObject.Find("Enemy").GetComponent<EnemyMovement>();
-		//float eX = Mathf.SmoothDamp(transform.position.x, enemy.transform.position.x, ref velocity.x, 0.25f);
-		//float eY = Mathf.SmoothDamp(transform.position.y, enemy.transform.position.y, ref velocity.y, 0.25f);
-		//transform.position = new Vector3(eX, eY, -10f);
+
+		/*EnemyMovement enemy = GameObject.Find("Enemy").GetComponent<EnemyMovement>();
+		float eX = Mathf.SmoothDamp(transform.position.x, enemy.transform.position.x, ref velocity.x, 0.25f);
+		float eY = Mathf.SmoothDamp(transform.position.y, enemy.transform.position.y, ref velocity.y, 0.25f);
+		transform.position = new Vector3(eX, eY, -10f);*/
+
 		//transform.position = new Vector3(Mathf.Clamp(posX, playerPos.x - boundRadius, playerPos.x + boundRadius), Mathf.Clamp(posY, playerPos.y - boundRadius, playerPos.y + boundRadius), -10f);
 		/*if (playerCam) {
 		   //if (Mathf.Sqrt(Mathf.Pow(playerPos.x - transform.position.x, 2) + Mathf.Pow(playerPos.y - transform.position.y, 2)) > boundRadius) {
