@@ -72,7 +72,7 @@ GameObject:
   m_Layer: 0
   m_Name: Feet
   m_TagString: Untagged
-  m_Icon: {fileID: 0}
+  m_Icon: {fileID: 6519382022992737161, guid: 0000000000000000d000000000000000, type: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
@@ -273,8 +273,9 @@ MonoBehaviour:
   movementSpeed: 10
   rb: {fileID: 4205693399732226537}
   anim: {fileID: 4205693399732226543}
-  jumpForce: 20
+  jumpForce: 15
   jumpsAvailable: 1
+  maxJumpTime: 0.2
   feet: {fileID: 4205693399662257168}
   groundLayers:
     serializedVersion: 2
@@ -317,7 +318,7 @@ MonoBehaviour:
   firingPoint: {fileID: 4205693399529783681}
   attackPoint: {fileID: 4205693399341080861}
   attackRate: 0.25
-  attackRange: 2
+  attackRange: 1
   attackDamage: 10
   enemyLayers:
     serializedVersion: 2

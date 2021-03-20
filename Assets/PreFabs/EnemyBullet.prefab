@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 5643619947463028348}
   - component: {fileID: 4853216030588895667}
   - component: {fileID: 7972827397514582944}
-  m_Layer: 10
+  m_Layer: 0
   m_Name: EnemyBullet
   m_TagString: EnemyBullet
   m_Icon: {fileID: 0}
@@ -113,7 +113,7 @@ Rigidbody2D:
   m_Simulated: 1
   m_UseFullKinematicContacts: 0
   m_UseAutoMass: 0
-  m_Mass: 1
+  m_Mass: 0.1
   m_LinearDrag: 0
   m_AngularDrag: 0.05
   m_GravityScale: 0
@@ -137,4 +137,6 @@ MonoBehaviour:
   rb: {fileID: 4853216030588895667}
   bulletSpeed: 15
   bulletDamage: 10
+  bulletLifeSpan: 5
   target: {x: 0, y: 0}
+  firingPoint: {x: 0, y: 0, z: 0}

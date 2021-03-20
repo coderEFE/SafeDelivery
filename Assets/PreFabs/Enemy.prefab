@@ -16,6 +16,7 @@ GameObject:
   - component: {fileID: 4883449992340908110}
   - component: {fileID: 4883449992340908111}
   - component: {fileID: 1372216346356439656}
+  - component: {fileID: 996373465926681407}
   m_Layer: 10
   m_Name: Enemy
   m_TagString: Enemy
@@ -179,11 +180,7 @@ MonoBehaviour:
   enemyLayer:
     serializedVersion: 2
     m_Bits: 1024
-  shieldLayer:
-    serializedVersion: 2
-    m_Bits: 2048
   groundCheck: {fileID: 0}
-  tilemap: {fileID: 0}
   failSafeTime: 2
 --- !u!114 &4883449992340908111
 MonoBehaviour:
@@ -212,3 +209,31 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 917d9466c0b38c3499a8c04739e036d1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  tilemap: {fileID: 0}
+  groundLayers:
+    serializedVersion: 2
+    m_Bits: 256
+--- !u!114 &996373465926681407
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4883449992340908104}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a63539b9cf648164e8dede852c4a840f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  feet: {fileID: 0}
+  speed: 5
+  jumpForce: 20
+  rb: {fileID: 0}
+  groundLayers:
+    serializedVersion: 2
+    m_Bits: 256
+  enemyLayer:
+    serializedVersion: 2
+    m_Bits: 1024
+  groundCheck: {fileID: 0}
+  failSafeTime: 2

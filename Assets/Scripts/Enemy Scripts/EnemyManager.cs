@@ -28,7 +28,7 @@ public class EnemyManager : MonoBehaviour {
 	}
 
 	void FixedUpdate() {
-		healthBar.transform.position = new Vector2(transform.position.x, transform.position.y + 1.25f);
+		//healthBar.transform.position = new Vector2(transform.position.x, transform.position.y + 1.25f);
 	}
 
 	private void OnCollisionEnter2D(Collision2D collision) {

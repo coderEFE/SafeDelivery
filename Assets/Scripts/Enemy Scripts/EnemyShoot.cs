@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 public class EnemyShoot : MonoBehaviour {
+	public GameObject body;
 	public Rigidbody2D rb;
 	public Transform firingPoint;
 	public GameObject bulletPrefab;
@@ -35,8 +36,8 @@ public class EnemyShoot : MonoBehaviour {
 	// Update is called once per frame
 	void Update() {
 		//assuming that bullets are 0.2f size
-		lookAtPlayer = Physics2D.CircleCast(transform.position, 0.2f, ((Vector2)player.transform.position - (Vector2)transform.position).normalized, shootingRange, ~enemyLayer);
-		if (littleGuy != null) lookAtGuy = Physics2D.CircleCast(transform.position, 0.2f, ((Vector2)littleGuy.transform.position - (Vector2)transform.position).normalized, shootingRange, ~enemyLayer);
+		lookAtPlayer = Physics2D.CircleCast(body.transform.position, 0.2f, ((Vector2)player.transform.position - (Vector2)body.transform.position).normalized, shootingRange, ~enemyLayer);
+		if (littleGuy != null) lookAtGuy = Physics2D.CircleCast(body.transform.position, 0.2f, ((Vector2)littleGuy.transform.position - (Vector2)body.transform.position).normalized, shootingRange, ~enemyLayer);
 		//Debug.Log(timeUntilFire + " : " + Time.time);
 		if (timeUntilFire < Time.time + 0.02 && timeUntilFire > Time.time + 0.01) {
 			playerFirstPos = GameObject.Find("Player").GetComponent<PlayerMovement>().transform.position;
@@ -56,7 +57,7 @@ public class EnemyShoot : MonoBehaviour {
 	}
 
 	void FixedUpdate() {
-		firingPoint.position = transform.position;
+		//firingPoint.position = body.transform.position;
 	}
 
 	void ShootAtLittleGuy () {
@@ -64,21 +65,22 @@ public class EnemyShoot : MonoBehaviour {
 		float angle = Mathf.Atan((guyPos.y - firingPoint.position.y) / (guyPos.x - firingPoint.position.x));
 		//Debug.Log(angle);
 		EnemyBullet bullet = Instantiate(bulletPrefab, firingPoint.position, Quaternion.Euler(new Vector3(0f, 0f, angle))).GetComponent<EnemyBullet>();
+		bullet.firingPoint = firingPoint.position;
 		bullet.target = guyPos;
-		Physics2D.IgnoreCollision(bullet.GetComponent<Collider2D>(), GameObject.Find("Enemy").GetComponent<Collider2D>());
+		Physics2D.IgnoreCollision(bullet.GetComponent<Collider2D>(), body.GetComponent<Collider2D>());
 	}
 
 	void ShootAtPlayer () {
-		bool playerGrounded = GameObject.Find("Player").GetComponent<PlayerMovement>().IsGrounded();
+		//bool playerGrounded = GameObject.Find("Player").GetComponent<PlayerMovement>().IsGrounded();
 
 		Vector3 playerPos = GameObject.Find("Player").GetComponent<PlayerMovement>().transform.position;
 		Vector2 playerVel = GameObject.Find("Player").GetComponent<PlayerMovement>().rb.velocity;
-		float distToPlayer = Vector2.Distance(transform.position, playerPos);
+		float distToPlayer = Vector2.Distance(body.transform.position, playerPos);
 		Vector2 playerVelocity = playerSecondPos - playerFirstPos;
 		//TODO: get rid of this if not using this formula
-		float time = Mathf.Abs((playerPos.y - transform.position.y + playerPos.x - transform.position.x) / (bulletSpeed - playerVelocity.x - playerVelocity.y));
-		float bulletVelX = (playerPos.x + (playerVelocity.x * time) - transform.position.x) / (bulletSpeed * time);
-		float bulletVelY = (playerPos.y + (playerVelocity.y * time) - transform.position.y) / (bulletSpeed * time);
+		float time = Mathf.Abs((playerPos.y - body.transform.position.y + playerPos.x - body.transform.position.x) / (bulletSpeed - playerVelocity.x - playerVelocity.y));
+		float bulletVelX = (playerPos.x + (playerVelocity.x * time) - body.transform.position.x) / (bulletSpeed * time);
+		float bulletVelY = (playerPos.y + (playerVelocity.y * time) - body.transform.position.y) / (bulletSpeed * time);
 		//Debug.Log(new Vector2(bulletVelX, bulletVelY).normalized);
 		//have the AI predict where the player will be based on player's position and velocity
 		//TODO: make this prediction for angle line up with prediction in the EnemyBullet class
@@ -88,10 +90,11 @@ public class EnemyShoot : MonoBehaviour {
 		float angle = Mathf.Atan((playerPos.y - firingPoint.position.y) / (playerPos.x - firingPoint.position.x));
 		//Debug.Log(angle);
 		EnemyBullet bullet = Instantiate(bulletPrefab, firingPoint.position, Quaternion.Euler(new Vector3(0f, 0f, angle))).GetComponent<EnemyBullet>();
+		bullet.firingPoint = firingPoint.position;
 		bullet.target = logPrediction;
-		logPrediction2 = ((Vector2)transform.position + new Vector2(bulletVelX, bulletVelY).normalized * bulletSpeed * time);
+		logPrediction2 = ((Vector2)body.transform.position + new Vector2(bulletVelX, bulletVelY).normalized * bulletSpeed * time);
 		//bullet.rb.velocity = new Vector2(bulletVelX, bulletVelY).normalized * bulletSpeed;
-		Physics2D.IgnoreCollision(bullet.GetComponent<Collider2D>(), GameObject.Find("Enemy").GetComponent<Collider2D>());
+		Physics2D.IgnoreCollision(bullet.GetComponent<Collider2D>(), body.GetComponent<Collider2D>());
 	}
 
 	void OnDrawGizmos() {
