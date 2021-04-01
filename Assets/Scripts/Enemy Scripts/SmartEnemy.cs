@@ -69,7 +69,7 @@ public class SmartEnemy : EnemyMovement {
 						movementPos = (Vector2)player.transform.position;
 						break;
 					case Targets.LittleGuy:
-						movementPos = (Vector2)littleGuy.transform.position;
+						if (littleGuy != null) movementPos = (Vector2)littleGuy.transform.position;
 						break;
 					case Targets.Flee:
 						float fleeDistance = 20f;
@@ -256,17 +256,17 @@ public class SmartEnemy : EnemyMovement {
 					}*/
 					break;
 				case States.Flee:
-					if (completedPath.Count <= 1 && body.GetComponent<EnemyManager>().currentHealth <= 30f && Vector2.Distance(body.transform.position, player.transform.position) <= alertRadius) {
+					if (body.GetComponent<EnemyManager>().currentHealth <= 30f) {
 						currTarget = Targets.Flee;
 						speed = 5f;
-						align = true;
+						//align = true;
 						genTarget = true;
 						genPath = true;
 					}
 					break;
 				case States.Resting:
 					if (body.GetComponent<EnemyManager>().currentHealth < body.GetComponent<EnemyManager>().maxHealth) {
-						body.GetComponent<EnemyManager>().currentHealth += 0.1f;
+						body.GetComponent<EnemyManager>().currentHealth += 100f * Time.deltaTime;
 					} else {
 						body.GetComponent<EnemyManager>().currentHealth = body.GetComponent<EnemyManager>().maxHealth;
 					}
@@ -313,7 +313,7 @@ public class SmartEnemy : EnemyMovement {
 			genTarget = true;
 			genPath = true;
 		}
-		Debug.Log(completedPath.Count);
+		//Debug.Log(completedPath.Count);
 		//Debug.Log(AIState + ", " + currTarget);
 	}
 
@@ -391,8 +391,8 @@ public class SmartEnemy : EnemyMovement {
 			Gizmos.DrawSphere(((NavPoint)completedPath[currentStep + 1]).coors, 0.25f);
 		}
 
-		//Gizmos.color = Color.blue;
-		//Gizmos.DrawSphere(targetVector2, 0.1f);
+		Gizmos.color = Color.blue;
+		Gizmos.DrawSphere(movementPos, 0.1f);
 	}
 
 	void FixedUpdate () {

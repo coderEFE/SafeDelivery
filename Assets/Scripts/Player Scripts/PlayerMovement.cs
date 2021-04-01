@@ -116,6 +116,7 @@ public class PlayerMovement : MonoBehaviour {
 		//ceilingAbove = Physics2D.Raycast(transform.position, transform.up, 10f, groundLayers);
 		//hitGround = Physics2D.Raycast(transform.position, -transform.up, 1.1f, groundLayers);
 		hitCeiling = Physics2D.Raycast(transform.position, transform.up, 1.1f, groundLayers);
+		Debug.Log(colliding);
 	}
 
 	private void FixedUpdate() {
@@ -175,9 +176,10 @@ public class PlayerMovement : MonoBehaviour {
 
 	//colliding functions
 	void OnCollisionEnter2D (Collision2D collision) {
-		if (!colliding && !hitCeiling && !collision.gameObject.CompareTag("EnemyBullet")) {
+		Debug.Log(colliding);
+		if (!colliding && (!hitCeiling || gravity.y > 0) && !collision.gameObject.CompareTag("EnemyBullet")) {
 			colliding = collision.collider != null;
-			//Debug.Log("reset");
+			Debug.Log("reset");
 			jumpsLeft = jumpsAvailable;
 		}
 	}
