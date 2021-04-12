@@ -11,10 +11,10 @@ public class Pathfinding : MonoBehaviour {
   public Vector2[,] tileWorldPoints;
   public LayerMask groundLayers;
   //might not be necessary var
-  double currGCost = double.PositiveInfinity;
+  public double currGCost = double.PositiveInfinity;
 
   NavPoint startPoint = new NavPoint();
-	NavPoint targetPoint = new NavPoint();
+	public NavPoint targetPoint = new NavPoint();
   int start = 0;
 	int target = 0;
 
@@ -251,7 +251,7 @@ public class Pathfinding : MonoBehaviour {
     }
   }
 
-  public void GenerateTarget (Vector2 movementPos, bool isFleeing) {
+  public void GenerateTarget (Vector2 movementPos, bool targetThroughWalls) {
     if (tilemap != null && navMesh != null) {
       //find the ending point on the navMesh
 			targetPoint = new NavPoint();
@@ -259,7 +259,7 @@ public class Pathfinding : MonoBehaviour {
         for (int x = 0; x < navMesh.GetLength(1); x++) {
           if (navMesh[y, x].type != "none") {
             RaycastHit2D checkWalls = Physics2D.Raycast(movementPos, ((Vector2)navMesh[y, x].coors - movementPos).normalized, Vector2.Distance(navMesh[y, x].coors, movementPos), groundLayers);
-            if ((targetPoint == new NavPoint() || Vector2.Distance(movementPos, navMesh[y, x].coors) < Vector2.Distance(movementPos, targetPoint.coors)) && (isFleeing || checkWalls.collider == null)) {
+            if ((targetPoint == new NavPoint() || Vector2.Distance(movementPos, navMesh[y, x].coors) < Vector2.Distance(movementPos, targetPoint.coors)) && (targetThroughWalls || checkWalls.collider == null)) {
               targetPoint = navMesh[y, x];
               target = y * navMesh.GetLength(1) + x;
             }

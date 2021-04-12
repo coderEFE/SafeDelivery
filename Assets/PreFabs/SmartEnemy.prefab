@@ -526,7 +526,21 @@ MonoBehaviour:
   enemyLayer:
     serializedVersion: 2
     m_Bits: 1024
+  playerLayer:
+    serializedVersion: 2
+    m_Bits: 512
   groundCheck: {fileID: 1371959415355568697}
+  kipupTime: 0.25
+  attackRate: 1
+  attackRange: 1
+  attackDamage: 10
+  AIState: 0
+  alertRadius: 10
+  susRadius: 5
+  meleeFollowRadius: 5
+  outOfFollowRadius: 10
+  canMeleeRadius: 2
+  susTime: 3
   failSafeTime: 2
 --- !u!114 &1371959416299687255
 MonoBehaviour:
@@ -551,8 +565,23 @@ MonoBehaviour:
   enemyLayer:
     serializedVersion: 2
     m_Bits: 1024
+  playerLayer:
+    serializedVersion: 2
+    m_Bits: 512
   groundCheck: {fileID: 1371959415355568697}
+  kipupTime: 0.25
+  attackRate: 1
+  attackRange: 1
+  attackDamage: 10
+  AIState: 0
+  alertRadius: 10
+  susRadius: 5
+  meleeFollowRadius: 5
+  outOfFollowRadius: 10
+  canMeleeRadius: 2
+  susTime: 3
   failSafeTime: 2
+  patrolPauseTime: 1
 --- !u!114 &1371959416299687254
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -570,6 +599,7 @@ MonoBehaviour:
   groundLayers:
     serializedVersion: 2
     m_Bits: 256
+  currGCost: Infinity
 --- !u!1 &4499484588814384467
 GameObject:
   m_ObjectHideFlags: 0

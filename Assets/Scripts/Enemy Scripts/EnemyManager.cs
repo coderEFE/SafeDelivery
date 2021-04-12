@@ -13,7 +13,7 @@ public class EnemyManager : MonoBehaviour {
 	void Start() {
 		currentHealth = maxHealth;
 		healthBar.SetMaxHealth(maxHealth);
-		Physics2D.IgnoreCollision(this.GetComponent<Collider2D>(), GameObject.Find("LittleGuy").GetComponent<Collider2D>(), true);
+		if (GameObject.Find("LittleGuy") != null) Physics2D.IgnoreCollision(this.GetComponent<Collider2D>(), GameObject.Find("LittleGuy").GetComponent<Collider2D>(), true);
 	}
 
 	// Update is called once per frame
@@ -33,7 +33,15 @@ public class EnemyManager : MonoBehaviour {
 
 	private void OnCollisionEnter2D(Collision2D collision) {
 		if (collision.gameObject.CompareTag("Bullet")) {
+			//Debug.Log();
 			currentHealth -= collision.gameObject.GetComponent<Bullet>().bulletDamage;
+			//stun enemy to let it get knocked back
+			transform.parent.gameObject.GetComponent<EnemyMovement>().SetStunTime((collision.gameObject.GetComponent<Bullet>().bulletSpeed / 10f) * (1f - currentHealth / maxHealth));
+			//make enemy suspicious if it is shot while patrolling
+			/*if (transform.parent.gameObject.GetComponent<SmartEnemy>().AIState == EnemyMovement.States.Patrolling) {
+				Debug.Log("sus");
+				transform.parent.gameObject.GetComponent<SmartEnemy>().TriggerSus();
+			}*/
 		}
 	}
 }

@@ -12,6 +12,7 @@ public class PlayerManager : MonoBehaviour {
 	public float attackDamage = 10f;
 	float timeUntilAttack;
 	public LayerMask enemyLayers;
+	public LayerMask playerLayer;
 	public GameObject bulletPrefab;
 	Vector2 axis;
 
@@ -52,10 +53,11 @@ public class PlayerManager : MonoBehaviour {
 		Collider2D[] collidersHit = Physics2D.OverlapCircleAll(attackPoint.position, attackRange, enemyLayers);
 		//TODO: implement other effects on objects from slash, possibly move littleGuy with it
 		foreach (Collider2D collider in collidersHit) {
+			//slash enemies
 			if (collider.gameObject.name.Equals("EnemyBody")) {
 				collider.GetComponent<EnemyManager>().currentHealth -= attackDamage;
 				//could either apply force coming from transform.position or attackPoint.position
-				float maxKnockback = 15f;
+				float maxKnockback = 10f;
 				float minRatio = 0.3f;
 				float knockbackRatio = (1 - Vector2.Distance(attackPoint.position, (Vector2)collider.gameObject.GetComponent<EnemyManager>().transform.position));
 				float knockback = 0f;
@@ -69,10 +71,18 @@ public class PlayerManager : MonoBehaviour {
 				//float knockback = (1 - Vector2.Distance(attackPoint.position, (Vector2)collider.gameObject.GetComponent<EnemyManager>().transform.position)) <= 0f ? 0f : (1 - Vector2.Distance(attackPoint.position, (Vector2)collider.gameObject.GetComponent<EnemyManager>().transform.position));
 				//float knockback = (1 - Vector2.Distance(attackPoint.position, (Vector2)collider.gameObject.GetComponent<EnemyManager>().transform.position));
 				Debug.Log(knockback);
+				collider.transform.parent.gameObject.GetComponent<EnemyMovement>().SetStunTime(knockback / 10f);
 				collider.transform.parent.gameObject.GetComponent<EnemyMovement>().rb.velocity = ((Vector2)(collider.gameObject.GetComponent<EnemyManager>().transform.position - transform.position).normalized * knockback);
 			}
 		}
-		//for (int i = 0; i < enemiesToDamage.Length; i++) {
+		/*Collider2D colliderHit = Physics2D.OverlapCircle(attackPoint.position, 0.1f, pm.groundLayers);
+		//slash ground
+		Debug.Log(((Vector2)(attackPoint.position - transform.position)));
+		if (colliderHit != null) {*/
+			Debug.Log("pogo");
+			float pogoKnockBack = 10f;
+			Vector2 pogo = ((Vector2)(transform.position - attackPoint.position)).normalized * pogoKnockBack;
+			pm.rb.AddForce(pogo, ForceMode2D.Impulse);
 		//}
 	}
 	//shoot with gun

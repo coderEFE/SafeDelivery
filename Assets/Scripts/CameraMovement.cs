@@ -17,17 +17,16 @@ public class CameraMovement : MonoBehaviour {
 	Vector2 boundLowerLeft = new Vector2(-10, -10);
 	Vector2 boundTopRight = new Vector2(10, 10);
 	//screen boundaries
-	Vector2 bottomLeftScreen;
-	Vector2 topRightScreen;
+	Vector2 screenBounds;
 
 	bool freeFall = false;
 
 	// Start is called before the first frame update
 	void Start() {
 		player = GameObject.Find("Player").GetComponent<PlayerMovement>();
-		buddy = GameObject.Find("LittleGuy").GetComponent<GuyMovement>();
-		bottomLeftScreen = new Vector2(0, 0);
-		topRightScreen = Camera.main.ScreenToWorldPoint(new Vector2(Screen.width, Screen.height));
+		if (GameObject.Find("LittleGuy") != null) buddy = GameObject.Find("LittleGuy").GetComponent<GuyMovement>();
+		Vector2 topRightScreen = Camera.main.ScreenToWorldPoint(new Vector2(Screen.width, Screen.height));
+		screenBounds = new Vector2(topRightScreen.x - transform.position.x, topRightScreen.y - transform.position.y);
 	}
 
 	// Update is called once per frame
@@ -73,9 +72,10 @@ public class CameraMovement : MonoBehaviour {
 		//Debug.Log(smoothSpeed);
 		Vector2 playerScreenPos = new Vector2(player.transform.position.x - transform.position.x, player.transform.position.y - transform.position.y);
 		//determine if player is in extreme top or bottom of screen, and if so, set freeFall to true
-		if (playerScreenPos.y > (topRightScreen.y / 1.5f) || playerScreenPos.y < -(topRightScreen.y / 1.5f)) {
+		if (playerScreenPos.y > (screenBounds.y * (0.5f)) || playerScreenPos.y < -(screenBounds.y * (0.5f))) {
 			freeFall = true;
-		} else if (player.colliding && Mathf.Abs(player.rb.velocity.y) <= 0.5f) {
+		}
+		if (player.colliding && Mathf.Abs(player.rb.velocity.y) <= 0.5f) {
 			freeFall = false;
 		}
 		//change screenOffset based on whether player is in freeFall or not
@@ -85,6 +85,7 @@ public class CameraMovement : MonoBehaviour {
 		} else {
 			screenOffset.y = 0f;
 			//look further down or up
+			//TODO: make it only work when on Ground, or not when attacking downward
 			if (player.colliding && Mathf.Abs(player.rb.velocity.y) <= 0.5f) {
 				float yAxis = Input.GetAxisRaw("Vertical");
 				if (yAxis >= yDeadzone) {
@@ -139,4 +140,9 @@ public class CameraMovement : MonoBehaviour {
 		   transform.position = new Vector3(transform.position.x + (buddyPos.x - transform.position.x) / camSpeedRatio, transform.position.y + (buddyPos.y - transform.position.y) / camSpeedRatio, -10);
 		   }*/
 	}
+
+	/*void OnDrawGizmos() {
+		Gizmos.color = Color.blue;
+		Gizmos.DrawCube(new Vector3(transform.position.x, transform.position.y, -1), screenBounds * 1f);
+	}*/
 }

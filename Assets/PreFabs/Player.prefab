@@ -24,7 +24,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4205693399341080860}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.5, y: 0, z: 0}
+  m_LocalPosition: {x: 1, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 4205693399732226539}
@@ -134,7 +134,6 @@ GameObject:
   - component: {fileID: 4205693399732226537}
   - component: {fileID: 4205693399732226536}
   - component: {fileID: 4205693399732226543}
-  - component: {fileID: 4205693399732226540}
   m_Layer: 9
   m_Name: Player
   m_TagString: Player
@@ -270,19 +269,32 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7ddbcbd4f6e93c34daa82f4240750e02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  movementSpeed: 10
-  rb: {fileID: 4205693399732226537}
-  anim: {fileID: 4205693399732226543}
-  jumpForce: 15
-  jumpsAvailable: 1
-  maxJumpTime: 0.2
   feet: {fileID: 4205693399662257168}
   groundLayers:
     serializedVersion: 2
     m_Bits: 256
   playerSight: {fileID: 4205693399719304140}
+  rb: {fileID: 4205693399732226537}
+  anim: {fileID: 4205693399732226543}
+  facingRight: 1
+  movementSpeed: 10
+  jumpForce: 15
+  jumpsAvailable: 1
+  maxJumpTime: 0.2
   colliding: 0
-  facingRight: 0
+  fireRate: 0.01
+  firingPoint: {fileID: 4205693399529783681}
+  attackPoint: {fileID: 4205693399341080861}
+  attackRate: 0.25
+  attackRange: 1
+  attackDamage: 10
+  enemyLayers:
+    serializedVersion: 2
+    m_Bits: 1024
+  playerLayer:
+    serializedVersion: 2
+    m_Bits: 512
+  bulletPrefab: {fileID: 5224497128314288007, guid: eb3d8830fa77e964f9683c9bddc3cc1f, type: 3}
 --- !u!95 &4205693399732226543
 Animator:
   serializedVersion: 3
@@ -302,25 +314,3 @@ Animator:
   m_HasTransformHierarchy: 1
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorControllerStateOnDisable: 0
---- !u!114 &4205693399732226540
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4205693399732226533}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1d9954cffdf04d04f899a6af9b24b10f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  fireRate: 0.01
-  firingPoint: {fileID: 4205693399529783681}
-  attackPoint: {fileID: 4205693399341080861}
-  attackRate: 0.25
-  attackRange: 1
-  attackDamage: 10
-  enemyLayers:
-    serializedVersion: 2
-    m_Bits: 1024
-  bulletPrefab: {fileID: 5224497128314288007, guid: eb3d8830fa77e964f9683c9bddc3cc1f, type: 3}

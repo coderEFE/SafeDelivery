@@ -15,6 +15,13 @@ public class EnemyMovement : MonoBehaviour {
 	protected PlayerMovement player;
 	protected GuyMovement littleGuy;
 	protected RaycastHit2D lookAtGuy;
+	protected RaycastHit2D lookAtPlayer;
+	[HideInInspector] public enum RobotTypes {
+		Melee,
+		MidRange,
+		Sniper
+	}
+	public RobotTypes type = RobotTypes.MidRange;
 
 	public Transform groundCheck;
 	protected bool isFacingRight = true;
@@ -30,8 +37,9 @@ public class EnemyMovement : MonoBehaviour {
 	protected float timeUntilAttack;
 
 	protected RaycastHit2D checkSide;
+	protected RaycastHit2D checkEdge;
 
-	protected enum States {
+	[HideInInspector] public enum States {
 		Patrolling,
 		Suspicious,
 		Alert,
@@ -39,7 +47,7 @@ public class EnemyMovement : MonoBehaviour {
 		Flee,
 		Resting
 	};
-	protected States AIState = States.Patrolling;
+	[HideInInspector] public States AIState = States.Patrolling;
 
 	//trigger radii
 	public int alertRadius = 10;
@@ -53,30 +61,33 @@ public class EnemyMovement : MonoBehaviour {
 	//rerun step if AI somehow failed to reach it within 2 seconds
 	public float failSafeTime = 2f;
 	protected float timeUntilFailSafe = 2f;
+
+	public static float stunTime;
 	//TODO: update navMesh and navLinks evertime the AI enters a new chunk of the world or conditions change
 
 	// Start is called before the first frame update
 	void Start() {
-		player = GameObject.Find("Player").GetComponent<PlayerMovement>();
-		littleGuy = GameObject.Find("LittleGuy").GetComponent<GuyMovement>();
+		//player = GameObject.Find("Player").GetComponent<PlayerMovement>();
+		//littleGuy = GameObject.Find("LittleGuy").GetComponent<GuyMovement>();
 	}
 
 	// Update is called once per frame
 	void Update() {
+		//Debug.Log(stunTime);
 		//update some vars
-		checkSide = Physics2D.Raycast(new Vector2(body.transform.position.x + (isFacingRight ? 0.5f : -0.5f), body.transform.position.y - 0.3f), -body.transform.up, 1f, groundLayers);
+		/*checkSide = Physics2D.Raycast(new Vector2(body.transform.position.x + (isFacingRight ? 0.5f : -0.5f), body.transform.position.y - 0.3f), -body.transform.up, 1f, groundLayers);
 
 		RaycastHit2D inSight = Physics2D.Raycast(body.transform.position, ((Vector2)player.transform.position - (Vector2)body.transform.position).normalized, meleeFollowRadius, groundLayers);
 		if (inSight.collider == null) {
 			AIState = States.Following;
 		} else if (Vector2.Distance(body.transform.position, player.transform.position) > outOfFollowRadius) {
 			AIState = States.Patrolling;
-		}
+		}*/
 		//Debug.Log(AIState);
 	}
 
 	void FixedUpdate () {
-		rb.AddForce(gravity);
+		/*rb.AddForce(gravity);
 
 		//Enemy can do a "kip up" when knocked on its side. This move jumps and rotates the enemy so that it is facing the right direction.
 		//Debug.Log(rb.rotation);
@@ -127,12 +138,21 @@ public class EnemyMovement : MonoBehaviour {
 				Slash();
 				timeUntilAttack = Time.time + attackRate;
 			}
-		}
+		}*/
 
 	}
 
+	public void TriggerSus() {
+		AIState = States.Suspicious;
+		timeUntilNotSus = Time.time + susTime;
+	}
+
+	public void SetStunTime(float newTime) {
+		stunTime = Time.time + newTime;
+	}
+
 	//attack with staff
-	void Slash() {
+	public void Slash() {
 		Vector2 attackPoint = new Vector2(body.transform.position.x + (isFacingRight ? 1f : -1), body.transform.position.y);
 		Collider2D[] collidersHit = Physics2D.OverlapCircleAll(attackPoint, attackRange, playerLayer);
 		//TODO: implement other effects on objects from slash, possibly move littleGuy with it

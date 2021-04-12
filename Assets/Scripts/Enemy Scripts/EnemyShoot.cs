@@ -29,7 +29,7 @@ public class EnemyShoot : MonoBehaviour {
 	// Start is called before the first frame update
 	void Start() {
 		player = GameObject.Find("Player").GetComponent<PlayerMovement>();
-		littleGuy = GameObject.Find("LittleGuy").GetComponent<GuyMovement>();
+		if (GameObject.Find("LittleGuy") != null) littleGuy = GameObject.Find("LittleGuy").GetComponent<GuyMovement>();
 		playerFirstPos = player.transform.position;
 	}
 
