@@ -10,6 +10,8 @@ TagManager:
   - EnemyBullet
   - Enemy
   - Shield
+  - Ladder
+  - Shell
   layers:
   - Default
   - TransparentFX
@@ -24,8 +26,8 @@ TagManager:
   - Enemy
   - Shield
   - LittleGuy
-  - 
-  - 
+  - Cosmetic
+  - Bullet
   - 
   - 
   - 
@@ -49,4 +51,7 @@ TagManager:
     locked: 0
   - name: Ground
     uniqueID: 1955634843
+    locked: 0
+  - name: Player
+    uniqueID: 950349991
     locked: 0

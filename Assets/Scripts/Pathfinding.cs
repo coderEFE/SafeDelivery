@@ -1,44 +1,51 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Tilemaps;
+//using UnityEngine.Tilemaps;
 using UnityEngine.Assertions;
 
 public class Pathfinding : MonoBehaviour {
   public GameObject body;
-  public Tilemap tilemap;
-	public NavPoint[,] navMesh;
-  public Vector2[,] tileWorldPoints;
-  public LayerMask groundLayers;
+  //public Tilemap tilemap;
+	//public NavPoint[,] navMesh;
+  //public Vector2[,] tileWorldPoints;
+  //public LayerMask groundLayers;
+  NavigationalMesh nav;
   //might not be necessary var
   public double currGCost = double.PositiveInfinity;
 
-  NavPoint startPoint = new NavPoint();
+  public NavPoint startPoint = new NavPoint();
 	public NavPoint targetPoint = new NavPoint();
   int start = 0;
 	int target = 0;
+  //BoundsInt bounds;
 
   // Start is called before the first frame update
   void Start() {
-
+    nav = GameObject.Find("NavigationalMesh").GetComponent<NavigationalMesh>();
+    /*if (tilemap != null) {
+      tilemap.CompressBounds();
+      bounds = tilemap.cellBounds;
+      //bounds.SetMinMax(new Vector3Int(bounds.xMin, bounds.yMin, bounds.zMin), new Vector3Int(bounds.xMax, bounds.yMax, bounds.zMax));
+    }*/
   }
 
   // Update is called once per frame
-  void Update() {
+  /*void Update() {
 
   }
 
   //initialize an array with world coordinates for the tiles in the tilemap
 	void SetTileWorldPoints() {
 		if (tilemap != null && navMesh != null) {
-			BoundsInt bounds = tilemap.cellBounds;
-			for (int y = tilemap.cellBounds.yMin; y < tilemap.cellBounds.yMax + 1; y++) {
-				for (int x = tilemap.cellBounds.xMin; x < tilemap.cellBounds.xMax; x++) {
+			//BoundsInt bounds = tilemap.cellBounds;
+			for (int y = bounds.yMin; y < bounds.yMax + 1; y++) {
+				for (int x = bounds.xMin; x < bounds.xMax; x++) {
 
-					Vector3Int localPlace = (new Vector3Int(x, y, (int)tilemap.transform.position.y));
+					Vector3Int localPlace = (new Vector3Int(x, y, (int)tilemap.transform.position.z));//.y
 					Vector3 place = tilemap.CellToWorld(localPlace);
-					int tileIndexY = (y - tilemap.cellBounds.yMin);
-					int tileIndexX = (x - tilemap.cellBounds.xMin);
+					int tileIndexY = (y - bounds.yMin);
+					int tileIndexX = (x - bounds.xMin);
 
 					tileWorldPoints[tileIndexY, tileIndexX] = new Vector2(place.x + 0.5f, place.y + 0.5f);
 				}
@@ -46,10 +53,11 @@ public class Pathfinding : MonoBehaviour {
 		}
 	}
 
-  public void GenerateNavMesh (Vector2 gravity) {
+  public void GenerateNavMesh (Vector2 gravity, Vector2Int minPoint, Vector2Int maxPoint) {
     if (tilemap != null) {
-      tilemap.CompressBounds();
-      BoundsInt bounds = tilemap.cellBounds;
+      //tilemap.CompressBounds();
+      //BoundsInt bounds = tilemap.cellBounds;
+      bounds.SetMinMax(new Vector3Int(minPoint.x, minPoint.y, bounds.zMin), new Vector3Int(maxPoint.x, maxPoint.y, bounds.zMax));
       TileBase[] allTiles = tilemap.GetTilesBlock(bounds);
       //navmesh is one block higher than tilemap since it needs to generate navpoints for the top tiles
       //initialize arrays for navMesh and tileWorldPoints
@@ -62,7 +70,7 @@ public class Pathfinding : MonoBehaviour {
       }
       SetTileWorldPoints();
 
-      /*GENERATE NAVPOINTS*/
+      //GENERATE NAVPOINTS
       int platformIndex = 0;
       bool platformStarted = false;
       for (int y = 0; y < bounds.size.y + 1; y++) {
@@ -96,14 +104,9 @@ public class Pathfinding : MonoBehaviour {
               platformStarted = false;
             }
           }
-          /*if (tile != null) {
-            Debug.Log("x:" + x + " y:" + y + " tile:" + tile.name);
-          } else {
-            Debug.Log("x:" + x + " y:" + y + " tile: (null)");
-          }*/
         }
       }
-      /*GENERATE NAVLINKS*/
+      //GENERATE NAVLINKS
       //start platform, target platform//, left or right
       bool[,] rightVisited = new bool[platformIndex, platformIndex];
       //int totalJumps = 0;
@@ -190,8 +193,8 @@ public class Pathfinding : MonoBehaviour {
                     for (int j = 1; j < jump.GetJumpPoints().Count; j++) {
                       //Vector3Int localPlace = new Vector3Int(((Vector2)jump.GetJumpPoints()[j]).x, ((Vector2)jump.GetJumpPoints()[j]).y, (int)tilemap.transform.position.y);
                       //Vector3 place = tilemap.CellToWorld(localPlace);
-                      int tileIndexY = (int)(((Vector2)jump.GetJumpPoints()[j]).y - tilemap.cellBounds.yMin);
-                      int tileIndexX = (int)(((Vector2)jump.GetJumpPoints()[j]).x - tilemap.cellBounds.xMin);
+                      int tileIndexY = (int)(((Vector2)jump.GetJumpPoints()[j]).y - bounds.yMin);
+                      int tileIndexX = (int)(((Vector2)jump.GetJumpPoints()[j]).x - bounds.xMin);
                       //TileBase tile = allTiles[tileIndexX + tileIndexY * bounds.size.x];
                       //change collider size (1f, 1f) if enemy size ever changes
                       Collider2D pointCollider = Physics2D.OverlapBox(((Vector2)jump.GetJumpPoints()[j]), new Vector2(1f, 1f), 0f, groundLayers);
@@ -249,42 +252,47 @@ public class Pathfinding : MonoBehaviour {
         }
       }
     }
-  }
+  }*/
 
   public void GenerateTarget (Vector2 movementPos, bool targetThroughWalls) {
-    if (tilemap != null && navMesh != null) {
+    //if (nav.tilemap != null && nav.navMesh != null) {
       //find the ending point on the navMesh
 			targetPoint = new NavPoint();
-      for (int y = 0; y < navMesh.GetLength(0); y++) {
-        for (int x = 0; x < navMesh.GetLength(1); x++) {
-          if (navMesh[y, x].type != "none") {
-            RaycastHit2D checkWalls = Physics2D.Raycast(movementPos, ((Vector2)navMesh[y, x].coors - movementPos).normalized, Vector2.Distance(navMesh[y, x].coors, movementPos), groundLayers);
-            if ((targetPoint == new NavPoint() || Vector2.Distance(movementPos, navMesh[y, x].coors) < Vector2.Distance(movementPos, targetPoint.coors)) && (targetThroughWalls || checkWalls.collider == null)) {
-              targetPoint = navMesh[y, x];
-              target = y * navMesh.GetLength(1) + x;
+      for (int y = 0; y < nav.navMesh.GetLength(0); y++) {
+        for (int x = 0; x < nav.navMesh.GetLength(1); x++) {
+          if (nav.navMesh[y, x].type != "none") {
+            RaycastHit2D checkWalls = Physics2D.Raycast(movementPos, ((Vector2)nav.navMesh[y, x].coors - movementPos).normalized, Vector2.Distance(nav.navMesh[y, x].coors, movementPos), nav.groundLayers);
+            if ((targetPoint == new NavPoint() || Vector2.Distance(movementPos, nav.navMesh[y, x].coors) < Vector2.Distance(movementPos, targetPoint.coors)) && (targetThroughWalls || checkWalls.collider == null)) {
+              targetPoint = nav.navMesh[y, x];
+              target = y * nav.navMesh.GetLength(1) + x;
             }
           }
         }
       }
-    }
+      if (targetPoint.type == "none") {
+        Debug.Log("none");
+        //currGCost = double.PositiveInfinity;
+      }
+    //}
   }
 
   public ArrayList GeneratePath () {
-    if (tilemap != null && navMesh != null && startPoint != new NavPoint() && targetPoint != new NavPoint()) {
+    // && targetPoint.type != "none" //nav.tilemap != null && nav.navMesh != null &&
+    if (startPoint != new NavPoint() && targetPoint != new NavPoint()) {
 			//find the starting point on the navMesh
-			for (int y = 0; y < navMesh.GetLength(0); y++) {
-				for (int x = 0; x < navMesh.GetLength(1); x++) {
-					if (navMesh[y, x].type != "none") {
-						if (startPoint == new NavPoint() || Vector2.Distance(body.transform.position, navMesh[y, x].coors) < Vector2.Distance(body.transform.position, startPoint.coors)) {
-							startPoint = navMesh[y, x];
-							start = y * navMesh.GetLength(1) + x;
+			for (int y = 0; y < nav.navMesh.GetLength(0); y++) {
+				for (int x = 0; x < nav.navMesh.GetLength(1); x++) {
+					if (nav.navMesh[y, x].type != "none") {
+						if (startPoint == new NavPoint() || Vector2.Distance(body.transform.position, nav.navMesh[y, x].coors) < Vector2.Distance(body.transform.position, startPoint.coors)) {
+							startPoint = nav.navMesh[y, x];
+							start = y * nav.navMesh.GetLength(1) + x;
 						}
 					}
 				}
 			}
 			//1 dimensional size of navMesh
-			int n = navMesh.GetLength(0) * navMesh.GetLength(1);
-			//Debug.Log(target);
+			int n = nav.navMesh.GetLength(0) * nav.navMesh.GetLength(1);
+			//Debug.Log(startPoint.coors + ", " + targetPoint.coors);
 			return ReconstructPath(n, start, target, targetPoint);
 		}
     return null;
@@ -292,7 +300,7 @@ public class Pathfinding : MonoBehaviour {
 
   double AStar(int n, int start, int target, NavPoint targetPoint, ref NavPoint[] prevPoints) {
   		/*if (startPoint != new NavPoint() && targetPoint != new NavPoint()) {
-  			Debug.Log(start + ", " + target);
+  			Debug.Log(start + ", " + target + " out of: " + n);
   		}*/
   		NavPoint[] prev = new NavPoint[n];
   		double[] gCost = new double[n];
@@ -313,26 +321,26 @@ public class Pathfinding : MonoBehaviour {
   			//Debug.Log(ipq.Contains(pointID));
   			//ipq.Pop();
   			//Debug.Log(navMesh.GetLength(1));
-  			int posX = (pointID % navMesh.GetLength(1));
-  			int posY = Mathf.FloorToInt(pointID / navMesh.GetLength(1));
+  			int posX = (pointID % nav.navMesh.GetLength(1));
+  			int posY = Mathf.FloorToInt(pointID / nav.navMesh.GetLength(1));
   			//Debug.Log("(" + posX + ", " + posY + ") : " + minValue);
-  			foreach (NavLink navLink in navMesh[posY, posX].navlinks) {
+  			foreach (NavLink navLink in nav.navMesh[posY, posX].navlinks) {
   				//Debug.Log("link");
-  				int tileIndexY = (int)(((Vector2)navLink.destPoint.coors).y - tilemap.cellBounds.yMin);
-  				int tileIndexX = (int)(((Vector2)navLink.destPoint.coors).x - tilemap.cellBounds.xMin);
+  				int tileIndexY = (int)(((Vector2)navLink.destPoint.coors).y - nav.bounds.yMin);
+  				int tileIndexX = (int)(((Vector2)navLink.destPoint.coors).x - nav.bounds.xMin);
   				//Debug.Log("(" + tileIndexX + ", " + tileIndexY + ")");
-  				int neighbor = tileIndexY * navMesh.GetLength(1) + tileIndexX;
+  				int neighbor = tileIndexY * nav.navMesh.GetLength(1) + tileIndexX;
   				if (visited[neighbor]) continue;
 
   				double newGCost = gCost[pointID] + navLink.linkScore;
   				if (newGCost < gCost[neighbor]) {
-  					prev[neighbor] = navMesh[posY, posX];
+  					prev[neighbor] = nav.navMesh[posY, posX];
   					gCost[neighbor] = newGCost;
   					//heurstic
-  					int neighborX = (neighbor % navMesh.GetLength(1));
-  					int neighborY = Mathf.FloorToInt(neighbor / navMesh.GetLength(1));
+  					int neighborX = (neighbor % nav.navMesh.GetLength(1));
+  					int neighborY = Mathf.FloorToInt(neighbor / nav.navMesh.GetLength(1));
   					int scaleFactor = 50;
-  					double hCost = Vector2.Distance(navMesh[neighborY, neighborX].coors, targetPoint.coors) / scaleFactor;
+  					double hCost = Vector2.Distance(nav.navMesh[neighborY, neighborX].coors, targetPoint.coors) / scaleFactor;
   					//fCost
   					double fCost = newGCost + hCost;
   					if (!ipq.Contains(neighbor)) {
@@ -349,6 +357,7 @@ public class Pathfinding : MonoBehaviour {
   				return gCost[target];
   			}
   		}
+      //Debug.Log("unreachable");
   		//if the target is unreachable.
     	return double.PositiveInfinity;
   	}
@@ -358,10 +367,10 @@ public class Pathfinding : MonoBehaviour {
   		NavPoint[] prev = new NavPoint[n];
   		currGCost = AStar(n, start, target, targetPoint, ref prev);
   		//Debug.Log(currGCost);
-  		if (currGCost == double.PositiveInfinity) return path;
+  		if (currGCost == double.PositiveInfinity) return null;
   		//Debug.Log(prev[((int)(((Vector2)targetPoint.coors).y - tilemap.cellBounds.yMin) * navMesh.GetLength(1) + (int)(((Vector2)targetPoint.coors).x - tilemap.cellBounds.xMin))]);
   		//path.Add(targetPoint);
-  		for (NavPoint at = targetPoint; at != null; at = prev[((int)(((Vector2)at.coors).y - tilemap.cellBounds.yMin) * navMesh.GetLength(1) + (int)(((Vector2)at.coors).x - tilemap.cellBounds.xMin))]) {
+  		for (NavPoint at = targetPoint; at != null; at = prev[((int)(((Vector2)at.coors).y - nav.bounds.yMin) * nav.navMesh.GetLength(1) + (int)(((Vector2)at.coors).x - nav.bounds.xMin))]) {
   			path.Add(at);
   			//Debug.Log("adding: " + at.coors);
   		}
@@ -373,7 +382,7 @@ public class Pathfinding : MonoBehaviour {
 /*CLASSES USED BY ENEMY PAHTFINDING*/
 
 //NavPoint class
-public class NavPoint {
+/*public class NavPoint {
 	public Vector2 coors = new Vector2();
 	public int platformIndex;
 	public string type = "none";
@@ -439,7 +448,7 @@ public class JumpTrajectory {
 	public ArrayList GetJumpPoints() {
 		return jumpPoints;
 	}
-}
+}*/
 
 //indexed priority queue
 public sealed class IndexedPriorityQueue<T> where T : System.IComparable

@@ -52,7 +52,7 @@ public class GuyMovement : MonoBehaviour {
       rb.rotation = 0f;
       shield.gameObject.SetActive(false);
       //shield.gameObject.GetComponent<SpriteRenderer>().enabled = false;
-      transform.position = new Vector3(player.facingRight ? player.transform.position.x - 0.5f : player.transform.position.x + 0.5f, player.transform.position.y, player.transform.position.z);
+      transform.position = new Vector3(player.transform.position.x - (player.facingDirection/2f), player.transform.position.y, player.transform.position.z);
       isFreebody = false;
     }
     //this.transform.position = collision.gameObject.transform.position;
